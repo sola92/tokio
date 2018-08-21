@@ -1,0 +1,20 @@
+{
+  "name": "sjn",
+  "version": "1.0.0",
+  "description": "",
+  "main": "hello.js",
+  "scripts": {
+    "flow": "flow",
+    "flow:check": "flow check .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "flow-bin": "^0.79.1"
+  },
+  "dependencies": {
+    "axios": "^0.18.0"
+  }
+}
