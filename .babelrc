@@ -1,0 +1,16 @@
+{
+  plugins: [
+    "transform-decorators-legacy",
+    "transform-flow-strip-types",
+    "babel-plugin-syntax-class-properties",
+    "transform-object-rest-spread",
+    "transform-do-expressions",
+    "transform-remove-strict-mode"
+  ],
+  presets: [
+    "flow",
+    "babel-preset-es2015",
+    "babel-preset-react",
+    "babel-preset-stage-1"
+  ]
+}
