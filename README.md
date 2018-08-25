@@ -8,8 +8,10 @@ install NVM to manage node versions
 
 https://github.com/creationix/nvm
 
-```shell
 set nvm to use node 8.0.0
+
+```shell
+nvm use 8.0.0
 ```
 
 ### Atom
