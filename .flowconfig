@@ -3,7 +3,7 @@
 [include]
 
 [libs]
-
+src/flowlib.js
 [lints]
 
 [options]

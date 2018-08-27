@@ -1,4 +1,6 @@
 //@flow
+import { BigNumber } from "bignumber.js";
+export const decimals = 18;
 export const contractAddress = "0x514910771AF9Ca656af840dff83E8264EcF986CA";
 export const ABI = [
   {
