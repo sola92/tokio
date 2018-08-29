@@ -13,6 +13,8 @@
  * https://github.com/flowtype/flow-typed
  */
 
+/* eslint-disable no-unused-vars */
+
 import { BN } from "bn.js";
 
 declare module "ethereumjs-tx" {

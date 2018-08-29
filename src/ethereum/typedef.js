@@ -1,4 +1,5 @@
 //@flow
+import { BN } from "bn.js";
 import { BigNumber } from "bignumber.js";
 
 type Callback<R> = (error: ?mixed, result: ?R) => void;
@@ -12,7 +13,7 @@ export type GasPrice = string | number | BigNumber;
 export type TransactionValue = string | number | BN | BigNumber;
 
 export type Account = {
-  address: string,
+  address: EthAddress,
   privateKey: string,
   sign: (data: mixed) => mixed,
   encrypt: (passord: mixed) => mixed,
@@ -28,7 +29,7 @@ export type ContractMethodTransaction = {
   call: <T>(
     options?: {
       // The address the call “transaction” should be made from
-      from?: ?string,
+      from?: ?EthAddress,
       // The gas price in wei to use for this call “transaction”.
       gasPrice?: ?string,
       // The maximum gas provided for this call “transaction” (gas limit).
@@ -42,7 +43,7 @@ export type ContractMethodTransaction = {
   send: (
     options: {
       // The address the transaction should be sent from
-      from: ?string,
+      from: ?EthAddress,
       // The gas price in wei to use for this transaction
       gasPrice?: ?string,
       // The maximum gas provided for this transaction (gas limit).
@@ -65,7 +66,7 @@ export type ContractMethodTransaction = {
   estimateGas: (
     options?: {
       // The address the transaction should be sent from
-      from: ?string,
+      from: ?EthAddress,
       // The maximum gas provided for this transaction (gas limit).
       gas?: ?number,
       // The maximum gas provided for this transaction (gas limit).
@@ -87,13 +88,13 @@ export type ContractAbi = { [string | number]: any } | Array<{ [string]: any }>;
 declare class Contract {
   options: {
     // The address where the contract is deployed. See options.address.
-    address: string,
+    address: EthAddress,
     // The json interface of the contract. See options.jsonInterface.
     jsonInterface: ContractAbi,
     // The byte code of the contract. Used when the contract gets deployed.
     data: string,
     // The address transactions should be made from.
-    from: string,
+    from: EthAddress,
     // The gas price in wei to use for transactions
     gasPrice: string,
     // The maximum gas provided for a transaction (gas limit)
@@ -104,12 +105,12 @@ declare class Contract {
     // The json interface for the contract to instantiate
     jsonInterface: ContractAbi,
     // The address of the smart contract to call, can be added later using
-    address?: string,
+    address?: EthAddress,
     // The options of the contract. Some are used as fallbacks for calls
     // and transactions:
     options?: {
       // The address transactions should be made from.
-      from?: string,
+      from?: EthAddress,
       // The gas price in wei to use for transactions.
       gasPrice?: string,
       // The maximum gas provided for a transaction (gas limit).
@@ -140,7 +141,7 @@ export type ContractType = Contract;
 export type RawTransaction = {
   nonce?: ?(string | number),
   chainId?: ?(string | number),
-  to?: ?string,
+  to?: ?EthAddress,
   data?: ?string,
   value?: ?TransactionValue,
   gasPrice?: ?GasPrice,
@@ -176,12 +177,12 @@ export type TransactionReceipt = {
   // Integer of the transactions index position in the block
   transactionIndex: string,
   // Address of the sender
-  from: string,
+  from: EthAddress,
   // Address of the sender
-  to: string,
+  to: EthAddress,
   // The contract address created, if the transaction was a
   // contract creation, otherwise null
-  contractAddress?: string,
+  contractAddress?: EthAddress,
   // The total amount of gas used when this transaction was executed
   // in the block
   cumulativeGasUsed: number,
@@ -195,7 +196,7 @@ export type TransactionReceipt = {
 export type KeyStoreJSONV3 = {
   version: number,
   id: string,
-  address: string,
+  address: EthAddress,
   crypto: {
     ciphertext: string,
     cipherparams: { [string]: any } /* { iv: string } */,
@@ -213,7 +214,7 @@ export type KeyStoreJSONV3 = {
 };
 
 export type Wallet = {
-  [address: string]: Account,
+  [address: EthAddress]: Account,
   add: (privateKeyOrAccount: string | Account) => Account,
   clear: () => Wallet,
   remove: (addressOrIndex: string | number) => boolean,
@@ -304,7 +305,7 @@ export type Eth = {
     callback?: Callback<RawTransaction>
   ) => Promise<RawTransaction>,
   getTransactionCount: (
-    address: string,
+    address: EthAddress,
     defaultBlock?: string | number,
     callback?: Callback<number>
   ) => Promise<number>,
@@ -324,12 +325,12 @@ export type Eth = {
   >,
   sign: (
     data: string,
-    address: string | number,
+    address: EthAddress | number,
     Callback<string>
   ) => Promise<string>,
   signTransaction: (
     transaction: RawTransaction,
-    address: string,
+    address: EthAddress,
     callback?: Callback<SignedTransaction>
   ) => Promise<SignedTransaction>,
   getGasPrice: (callback?: Callback<string>) => Promise<string>,
@@ -341,13 +342,13 @@ export type Eth = {
     callback?: Callback<string>
   ) => Promise<string>,
   getStorageAt: (
-    address: string,
+    address: EthAddress,
     index: string | number,
     defaultBlock?: string | number,
     callback?: Callback<string>
   ) => Promise<string>,
   getBlock: (
-    blockNumberOrHash: string | number,
+    blockNumberOrHash: string | number | "latest" /* gived latest block */,
     returnTransactionObjects?: boolean,
     callback?: Callback<Block>
   ) => Promise<Block>
