@@ -5,12 +5,15 @@
     "babel-plugin-syntax-class-properties",
     "transform-object-rest-spread",
     "transform-do-expressions",
-    "transform-remove-strict-mode"
+    "transform-remove-strict-mode",
+    "transform-runtime",
+    "transform-async-to-generator"
   ],
   presets: [
     "flow",
     "babel-preset-es2015",
     "babel-preset-react",
-    "babel-preset-stage-1"
+    "babel-preset-stage-1",
+    "babel-preset-stage-0"
   ]
 }
