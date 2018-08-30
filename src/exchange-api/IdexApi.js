@@ -34,7 +34,7 @@ const ETH_TOKEN_ADDR: string = '0x0000000000000000000000000000000000000000';
 
 // See IDEX API Docs (https://github.com/AuroraDAO/idex-api-docs) for info.
 async function callIdex(method: string, args: IDEX_API_ARG): Promise<Response> {
-  return Axios.post(method, args);
+  return Axios.post('https://api.idex.market/' + method, args);
 }
 
 // Returns a list of all tokens on IDEX.
