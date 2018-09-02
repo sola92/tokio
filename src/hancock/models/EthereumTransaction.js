@@ -1,26 +1,34 @@
 //@flow
 import { BigNumber } from "bignumber.js";
-import BaseModel from "./BaseModel";
-import type { BaseFields } from "./BaseModel";
+import BaseModel from "src/lib/BaseModel";
+import type { BaseFields } from "src/lib/BaseModel";
 
-import { ETH_ADDRESS_LENGTH } from "./EthereumAddress";
+import { ETH_ADDRESS_LENGTH } from "./EthereumAccount";
 
+export type State = "pending" | "confirmed";
 export type Fields = BaseFields & {
   to: EthAddress,
   hash: string,
   data: string,
   from: EthAddress,
   value: string,
+  ticker: ?string,
   gasLimit: string,
   gasPrice: string,
   numRetries: number,
   blockNumber: ?number,
   chainId: number,
-  contractAddress: ?EthAddress
+  nonce: number,
+  contractAddress: ?EthAddress,
+  state: State
 };
 
 export default class EthereumTransaction extends BaseModel<Fields> {
   static tableName = "eth_transaction";
+
+  get isERC20(): boolean {
+    return this.attr.contractAddress != null;
+  }
 
   get valueBN(): BigNumber {
     return new BigNumber(this.attr.value);
@@ -35,27 +43,36 @@ export default class EthereumTransaction extends BaseModel<Fields> {
   }
 
   static jsonSchema = {
-    required: ["to", "from", "hash", "value", "data", "gasLimit", "gasPrice"],
+    required: [
+      "to",
+      "from",
+      "hash",
+      "value",
+      "data",
+      "gasLimit",
+      "gasPrice",
+      "nonce"
+    ],
 
     properties: {
       hash: { type: "string", minLength: 40, maxLength: 100 },
       to: {
         type: "string",
-        minLength: ETH_ADDRESS_LENGTH,
-        maxLength: ETH_ADDRESS_LENGTH
+        length: ETH_ADDRESS_LENGTH
       },
       from: {
         type: "string",
-        minLength: ETH_ADDRESS_LENGTH,
-        maxLength: ETH_ADDRESS_LENGTH
+        length: ETH_ADDRESS_LENGTH
       },
       contractAddress: {
         type: ["string", "null"],
-        minLength: ETH_ADDRESS_LENGTH,
-        maxLength: ETH_ADDRESS_LENGTH
+        length: ETH_ADDRESS_LENGTH
       },
       blockNumber: { type: ["number", "null"] },
-      chainId: { type: "number" }
+      chainId: { type: "number" },
+      nonce: { type: "number" },
+      state: { type: "string" },
+      ticker: { type: ["string", "null"] }
     }
   };
 }

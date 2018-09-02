@@ -40,11 +40,11 @@ test("send erc20 (TST token) with insufficient balance", async () => {
 
     let error: ?InsufficientBalanceError = null;
     try {
-      await senderSession.transferTo(
-        recipient.address,
-        balance.plus(1),
-        ROPSTEN_KEY
-      );
+      await senderSession.transferTo({
+        toAddress: recipient.address,
+        privateKey: ROPSTEN_KEY,
+        transferAmount: balance.plus(1)
+      });
     } catch (e) {
       error = e;
     }

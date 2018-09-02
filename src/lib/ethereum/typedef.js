@@ -354,11 +354,39 @@ export type Eth = {
   ) => Promise<Block>
 };
 
+export type EthUnit =
+  | "wei"
+  | "kwei"
+  | "Kwei"
+  | "babbage"
+  | "femtoether"
+  | "mwei"
+  | "Mwei"
+  | "lovelace"
+  | "picoether"
+  | "gwei"
+  | "Gwei"
+  | "shannon"
+  | "nanoether"
+  | "nano"
+  | "szabo"
+  | "microether"
+  | "micro"
+  | "finney"
+  | "milliether"
+  | "milli"
+  | "ether"
+  | "kether"
+  | "grand"
+  | "mether"
+  | "gether";
+
 export type Utils = {
   toHex: (value: string | number | BigNumber) => string,
   isAddress: (str: any) => boolean,
   utf8ToHex: (str: string) => string,
-  randomHex: (size: number) => string
+  randomHex: (size: number) => string,
+  toWei: (number: string | number, unit: EthUnit) => string
 };
 
 export type Web3ApiType = {

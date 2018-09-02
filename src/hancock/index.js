@@ -1,3 +1,3 @@
 /* @flow */
 require("babel-core/register");
-require("./app.js");
+require("./server.js");

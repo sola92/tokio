@@ -35,7 +35,11 @@ export default class Erc20Session {
     this.fromAddress = fromAddress;
   }
 
-  async getBalance(inContractPrecision?: boolean = false): Promise<BigNumber> {
+  async getBalance(
+    { inContractPrecision }: { inContractPrecision?: boolean } = {
+      inContractPrecision: false
+    }
+  ): Promise<BigNumber> {
     const accountBalance: number = await this.contract.methods
       .balanceOf(this.fromAddress)
       .call();
@@ -47,11 +51,19 @@ export default class Erc20Session {
     return this.fromContractPrecision(accountBalance);
   }
 
-  async transferTo(
-    toAddress: string,
-    value: BigNumber,
-    privateKey: string
-  ): Promise<string> {
+  async transferTo({
+    nonce,
+    gasPrice,
+    toAddress,
+    privateKey,
+    transferAmount
+  }: {
+    toAddress: EthAddress,
+    privateKey: string,
+    transferAmount: BigNumber,
+    nonce?: number,
+    gasPrice?: BigNumber
+  }): Promise<string> {
     const { contract, session, ticker } = this;
 
     if (!session.isAddress(toAddress)) {
@@ -59,7 +71,6 @@ export default class Erc20Session {
     }
 
     const balance = await this.getBalance();
-    const transferAmount = new BigNumber(value);
     if (balance.isLessThan(transferAmount)) {
       throw new InsufficientBalanceError(balance, transferAmount, ticker);
     }
@@ -69,18 +80,25 @@ export default class Erc20Session {
         toAddress,
         session.toHex(this.toContractPrecision(transferAmount))
       ),
-      privateKey
+      privateKey,
+      nonce,
+      gasPrice
     );
   }
 
   async issueMethodCall(
     call: ContractMethodTransaction,
     privateKey: string,
+    nonce?: number,
     gasPrice?: BigNumber
   ): Promise<string> {
     const { session, contract, fromAddress } = this;
     const chainId = await session.getChainId();
-    const nonce = await session.getNonce(fromAddress);
+
+    if (nonce == null) {
+      nonce = await session.getNonce(fromAddress);
+    }
+
     const estimatedGas = await call.estimateGas();
     if (gasPrice == null) {
       gasPrice = await session.getGasPrice();

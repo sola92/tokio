@@ -7,6 +7,7 @@ import type {
   Web3ApiType,
   Account,
   Block,
+  EthUnit,
   NetworkType,
   RawTransaction,
   TransactionReceipt
@@ -65,6 +66,10 @@ export default class Web3Session {
 
   randomHex(size: number): string {
     return this.web3.utils.randomHex(size);
+  }
+
+  toWei(number: string | number, unit: EthUnit): string {
+    return this.web3.utils.toWei(number, unit);
   }
 
   clearWallet() {
@@ -182,5 +187,13 @@ export default class Web3Session {
 
   static createMainnetSession(): Web3Session {
     return new Web3Session(MAINNET_NODE);
+  }
+
+  static createSession(): Web3Session {
+    if (process.env.NODE_ENV == "production") {
+      return this.createMainnetSession();
+    } else {
+      return this.createRopstenSession();
+    }
   }
 }
