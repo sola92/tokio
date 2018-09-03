@@ -28,7 +28,9 @@ export default class EthSession {
     }
   }
 
-  async getBalance(inEthPrecision?: boolean = false): Promise<BigNumber> {
+  async getBalance(
+    { inEthPrecision }: { inEthPrecision?: boolean } = { inEthPrecision: false }
+  ): Promise<BigNumber> {
     const accountBalance: ?BigNumber = await this.session.getEthBalance(
       this.fromAddress
     );
@@ -43,11 +45,21 @@ export default class EthSession {
     return new BigNumber(0);
   }
 
-  async transferTo(
-    toAddress: EthAddress,
+  async transferTo({
+    value,
+    nonce,
+    gasLimit,
+    gasPrice,
+    toAddress,
+    privateKey
+  }: {
     value: BigNumber,
-    privateKey: string
-  ): Promise<string> {
+    toAddress: EthAddress,
+    privateKey: string,
+    nonce?: number,
+    gasPrice?: BigNumber,
+    gasLimit?: BigNumber
+  }): Promise<string> {
     const { session } = this;
 
     if (!session.isAddress(toAddress)) {
@@ -59,20 +71,30 @@ export default class EthSession {
       throw new InsufficientBalanceError(balance, value, EthSession.TICKER);
     }
 
-    const gasPrice = await session.getGasPrice();
+    if (gasPrice === null) {
+      gasPrice = await session.getGasPrice();
+    }
+
+    if (gasLimit === null) {
+      const lastestBlock = await session.getLatestBlock();
+      gasLimit = new BigNumber(lastestBlock.gasLimit);
+    }
     const chainId = await session.getChainId();
-    const nonce = await session.getNonce(this.fromAddress);
 
-    const lastestBlock = await session.getLatestBlock();
+    if (nonce !== null) {
+      nonce = await session.getNonce(this.fromAddress);
+    }
 
-    console.log("gasLimit", lastestBlock.gasLimit);
     console.log("value", EthSession.toEthPrecision(value).toString());
     const transaction = new EthereumTx({
       from: this.fromAddress,
+      // $FlowFixMe
       gasPrice: session.toHex(gasPrice),
-      gasLimit: session.toHex(lastestBlock.gasLimit),
+      // $FlowFixMe
+      gasLimit: session.toHex(gasLimit),
       to: toAddress,
       value: session.toHex(EthSession.toEthPrecision(value)),
+      // $FlowFixMe
       nonce: session.toHex(nonce),
       chainId: session.toHex(chainId)
     });

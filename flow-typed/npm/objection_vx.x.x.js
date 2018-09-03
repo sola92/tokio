@@ -44,6 +44,8 @@ declare module "objection" {
     $parseDatabaseJson(json: ?Json): ?Json;
     $formatDatabaseJson(json: ?Json): ?Json;
 
+    toJSON(): Json;
+
     static knex(knex?: Knex$Knex<*>): Knex$Knex<*>;
   }
 

@@ -73,7 +73,11 @@
       "EthAddress": true,
       "Json": true,
       "exports": true,
-      "$Shape": true
+      "$Shape": true,
+      "beforeEach": true,
+      "afterEach": true,
+      "afterAll": true,
+      "beforeAll": true
     },
     "rules": {
       "indent": 0,
@@ -128,6 +132,7 @@
     "babel-plugin-transform-runtime": "^6.23.0",
     "bignumber.js": "^7.2.1",
     "bn.js": "^4.11.8",
+    "body-parser": "^1.18.3",
     "commander": "^2.17.1",
     "ethereumjs-tx": "^1.3.7",
     "ethereumjs-util": "^5.2.0",
