@@ -3,8 +3,11 @@
 import "jest";
 import "../init-db";
 import Knex from "knex";
+import express from "express";
 import { Model } from "objection";
 import * as models from "../models";
+
+import { createApp } from "../server";
 
 import {
   ABI,
@@ -13,6 +16,16 @@ import {
 } from "src/lib/ethereum/abi/ropsten/test-standard-token";
 
 import EthSession from "src/lib/ethereum/EthSession";
+
+import { apiErrorMiddleware } from "src/lib/express";
+
+require("dotenv").config();
+
+jest.setTimeout(1000000);
+
+export const initApp = () => {
+  return createApp();
+};
 
 export const clearTable = async (modelName: string) => {
   const knex: Knex<*> = Model.knex();
@@ -42,7 +55,7 @@ const wait = (milliseconds: number): Promise<*> => {
 };
 
 beforeAll(async () => {
-  // await clearAllTables();
+  await clearAllTables();
 
   const ropstenKey = process.env.ROPSTEN_ACCOUNT_KEY || "";
   const ropstenAddr = process.env.ROPSTEN_ACCOUNT || "";

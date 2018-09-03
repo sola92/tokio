@@ -19,6 +19,10 @@ export type Fields = BaseFields & {
 export default class Asset extends BaseModel<Fields> {
   static tableName = "assets";
 
+  isTicker(ticker: string): boolean {
+    return this.attr.ticker.toLowerCase() == ticker.toLowerCase();
+  }
+
   get ABI(): ?ContractAbi {
     if (this.attr.abi == null) {
       return null;
@@ -38,8 +42,7 @@ export default class Asset extends BaseModel<Fields> {
     properties: {
       contractAddress: {
         type: ["string", "null"],
-        minLength: ETH_ADDRESS_LENGTH,
-        maxLength: ETH_ADDRESS_LENGTH
+        length: ETH_ADDRESS_LENGTH
       },
       name: {
         type: "string"

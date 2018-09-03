@@ -96,6 +96,11 @@ export default class Web3Session {
     return await this.web3.eth.getBlockNumber();
   }
 
+  async getLatestGasLimit(): Promise<BigNumber> {
+    const lastestBlock = await this.getLatestBlock();
+    return new BigNumber(lastestBlock.gasLimit);
+  }
+
   async signTransaction(
     transaction: RawTransaction,
     privateKey: string

@@ -13,6 +13,14 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
     table.timestamp("updatedAt", 3).defaultTo(knex.fn.now(3));
 
     table
+      .string("gasBalance")
+      .defaultTo("0")
+      .notNullable()
+      .comment(
+        `amount of gas we have in this account for processing transfers`
+      );
+
+    table
       .string("privateKey", 100)
       .comment(`this is temporary. will be migrated elsewhere`);
 

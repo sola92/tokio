@@ -5,34 +5,16 @@
 
 import { Model } from "objection";
 import moment from "moment";
-import type { Knex } from "knex";
-
-type Comparison = "<" | ">" | "=" | "like";
-
-type UpdateQuery<R, F> = {
-  where(
-    column: string,
-    operator: Comparison,
-    value: any
-  ): Promise<R> & UpdateQuery<R, F>
-};
+import type { Knex, $QueryBuilder, Knex$Transaction } from "knex";
 
 type Id = number;
 
-type QueryBuilder<M, F> = {
-  skipUndefined(): QueryBuilder<M, F>,
-  insert(values: $Shape<F>): Promise<M>,
-  select(...args: Array<string>): QueryBuilder<M, F>,
-  count(): UpdateQuery<number, F>,
-  patch(values: $Shape<F>): UpdateQuery<number, F>,
-  update(values: $Shape<F>): UpdateQuery<number, F>,
-  where(column: $Keys<F>, operator: Comparison, value: any): QueryBuilder<M, F>,
-  orderBy(columns: $Keys<F>): Promise<M>,
+type QueryBuilder<R, F> = $QueryBuilder<R> & {
   deleteById(id: Id): Promise<>,
-  findById(id: Id): Promise<?M>,
-  findOne(conditions: $Shape<F>): Promise<?M>,
-  patchAndFetchById(id: Id, updates: $Shape<F>): Promise<M>,
-  updateAndFetchById(id: Id, updates: $Shape<F>): Promise<M>
+  findById(id: Id): Promise<?R>,
+  findOne(conditions: $Shape<F>): Promise<?R>,
+  patchAndFetchById(id: Id, updates: $Shape<F>): Promise<R>,
+  updateAndFetchById(id: Id, updates: $Shape<F>): Promise<R>
 };
 
 export type BaseFields = {
@@ -60,18 +42,19 @@ export default class BaseModel<F: BaseFields> extends Model {
     });
   }
 
-  async update<M: BaseModel<F>>(updates: $Shape<F>): Promise<M> {
-    return await this.constructor
-      .query()
+  async update(updates: $Shape<F>, trx?: Knex$Transaction) {
+    const newer = await this.constructor
+      .query(trx)
       .updateAndFetchById(this.attr.id, updates);
+    Object.assign(this, newer);
   }
 
-  async refresh<M: BaseModel<F>>(): Promise<M> {
-    // $FlowFixMe
-    return await this.constructor.query().findById(this.attr.id);
+  async refresh(trx?: Knex$Transaction) {
+    const newer = await this.constructor.query(trx).findById(this.attr.id);
+    Object.assign(this, newer);
   }
 
-  static query<M: BaseModel<F>>(trx?: Knex$Transaction<*>): QueryBuilder<M, F> {
+  static query<R>(trx?: Knex$Transaction): QueryBuilder<R, F> {
     // $FlowFixMe
     return super.query(trx);
   }
@@ -81,11 +64,11 @@ export default class BaseModel<F: BaseFields> extends Model {
     return super.fromJson(fields);
   }
 
-  static findById<M: BaseModel<F>>(id: Id): Promise<?M> {
+  static findById(id: Id): Promise<?this> {
     return this.query().findById(id);
   }
 
-  static findOne<M: BaseModel<F>>(conditions: $Shape<F>): Promise<?M> {
+  static findOne(conditions: $Shape<F>): Promise<?this> {
     return this.query().findOne(conditions);
   }
 
