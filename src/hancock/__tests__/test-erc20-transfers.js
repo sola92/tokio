@@ -1,11 +1,6 @@
 //@flow
 import "jest";
-
-import {
-  ABI,
-  decimals,
-  contractAddress
-} from "src/lib/ethereum/abi/ropsten/test-standard-token";
+import "./base";
 
 import { BigNumber } from "bignumber.js";
 

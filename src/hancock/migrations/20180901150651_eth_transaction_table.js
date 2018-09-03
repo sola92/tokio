@@ -30,11 +30,25 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
       .comment(`this is null until transaction is confirmed`);
     table.integer("chainId").notNullable();
 
-    table.timestamp("createdAt", 3).defaultTo(knex.fn.now(3));
+    table
+      .timestamp("createdAt", 3)
+      .defaultTo(knex.fn.now(3))
+      .index();
     table
       .timestamp("updatedAt", 3)
       .defaultTo(knex.fn.now(3))
       .index();
+
+    table.integer("nonce").notNullable();
+    table
+      .string("state")
+      .notNullable()
+      .defaultTo("pending")
+      .index();
+    table
+      .string("ticker", 20)
+      .index()
+      .nullable();
 
     table.comment(`
       has an entry for every ethereum transaction. if the blockNumber is null,
