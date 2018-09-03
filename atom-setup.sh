@@ -5,3 +5,4 @@ apm install autocomplete-flow
 apm install language-babel
 apm install prettier-atom
 apm install linter-eslint
+apm install language-docker

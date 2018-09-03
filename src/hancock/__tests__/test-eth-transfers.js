@@ -3,9 +3,8 @@ import "jest";
 
 import { BigNumber } from "bignumber.js";
 
-import EthSession from "../EthSession";
-import Web3Session from "../Web3Session";
-import { InvalidAddressError, InsufficientBalanceError } from "../errors";
+import EthSession from "src/lib/ethereum/EthSession";
+import Web3Session from "src/lib/ethereum/Web3Session";
 
 require("dotenv").config();
 

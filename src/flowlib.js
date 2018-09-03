@@ -4,6 +4,7 @@
 /*
 * Anything type declared here will be defined globally. Will also need to update
 * "globals" config in package.json to whitelist the type from eslint no-undef
-* errors. 
+* errors.
 */
 declare type EthAddress = string;
+declare type Json = { [string]: any };
