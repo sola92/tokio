@@ -20,9 +20,14 @@
 import type { Knex } from "knex";
 
 declare module "objection" {
-  declare export type ColumnType = "integer" | "string" | "number" | "object";
+  declare export type ColumnType =
+    | "integer"
+    | "string"
+    | "number"
+    | "object"
+    | "boolean";
   declare export type ColumnDefinition = {
-    type: ColumnType | Array<string>,
+    type: ColumnType,
     minLength?: number,
     maxLength?: number,
     properties?: { [any]: ColumnDefinition }

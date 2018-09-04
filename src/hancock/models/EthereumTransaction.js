@@ -5,14 +5,14 @@ import type { BaseFields } from "src/lib/BaseModel";
 
 import { ETH_ADDRESS_LENGTH } from "./EthereumAccount";
 
-export type State = "pending" | "confirmed";
+export type State = "pending" | "confirmed" | "fully_confirmed";
 export type Fields = BaseFields & {
   to: EthAddress,
   hash: string,
   data: string,
   from: EthAddress,
   value: string,
-  ticker: ?string,
+  ticker: string,
   gasLimit: string,
   gasPrice: string,
   numRetries: number,
@@ -25,6 +25,10 @@ export type Fields = BaseFields & {
 
 export default class EthereumTransaction extends BaseModel<Fields> {
   static tableName = "eth_transaction";
+
+  get publicId(): string {
+    return `${this.attr.ticker}-${this.attr.id}`;
+  }
 
   get isERC20(): boolean {
     return this.attr.contractAddress != null;
@@ -42,6 +46,16 @@ export default class EthereumTransaction extends BaseModel<Fields> {
     return new BigNumber(this.attr.gasLimit);
   }
 
+  static getPendingTransactions({
+    from
+  }: {
+    from: EthAddress
+  }): Promise<Array<EthereumTransaction>> {
+    return this.query()
+      .where("from", from)
+      .where("state", "pending");
+  }
+
   static jsonSchema = {
     required: [
       "to",
@@ -51,7 +65,8 @@ export default class EthereumTransaction extends BaseModel<Fields> {
       "data",
       "gasLimit",
       "gasPrice",
-      "nonce"
+      "nonce",
+      "ticker"
     ],
 
     properties: {
@@ -72,7 +87,7 @@ export default class EthereumTransaction extends BaseModel<Fields> {
       chainId: { type: "number" },
       nonce: { type: "number" },
       state: { type: "string" },
-      ticker: { type: ["string", "null"] }
+      ticker: { type: "string" }
     }
   };
 }

@@ -1,5 +1,19 @@
 hancock signs and broadcasts transactions
 
+## API
+
+### post a transaction
+
+```shell
+ POST /transactions/:ticker {to: "0x...", from: "0x...", value: "0.0001"}
+```
+
+### Get transaction
+
+```shell
+ GET /transactions/:ticker-:transactionId
+```
+
 ## Setup
 
 ### Start the DB
