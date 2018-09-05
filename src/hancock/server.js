@@ -2,14 +2,17 @@
 import "./init-db";
 import express from "express";
 import bodyParser from "body-parser";
-import transactions from "./transactions";
 import { apiErrorMiddleware } from "src/lib/express";
+import transactions from "./transactions";
 
 export const createApp = () => {
   const app = express();
+  // These should run before requests
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: true }));
   app.use("/transactions", transactions);
-  app.use(bodyParser.json({ type: "application/*+json" }));
-  // Always place this last in the file
+
+  // These should run after requests... place these after route declarations.
   app.use(apiErrorMiddleware());
 
   return app;

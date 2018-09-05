@@ -26,6 +26,16 @@ export class InvalidParameterError extends ApiError {
   static responseCode: number = 400;
 }
 
+export class InvalidRecipientError extends ApiError {
+  static code: string = "INVALID_TO";
+  static responseCode: number = 400;
+}
+
+export class UnknownAccountError extends ApiError {
+  static code: string = "UNKNOWN_ACCOUNT";
+  static responseCode: number = 400;
+}
+
 export class NotFoundError extends ApiError {
   static code: string = "NOT_FOUND";
   static responseCode: number = 404;

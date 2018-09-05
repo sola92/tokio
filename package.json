@@ -154,7 +154,7 @@
     ]
   },
   "scripts": {
-    "test": "jest --coverage",
+    "test": "babel-node ./src/test/beforeAll.js && jest --coverage",
     "build": "babel src -d lib"
   }
 }

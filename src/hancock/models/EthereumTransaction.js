@@ -1,6 +1,6 @@
 //@flow
 import { BigNumber } from "bignumber.js";
-import BaseModel from "src/lib/BaseModel";
+import BaseModel from "../../lib/BaseModel";
 import type { BaseFields } from "src/lib/BaseModel";
 
 import { ETH_ADDRESS_LENGTH } from "./EthereumAccount";
@@ -14,7 +14,7 @@ export type Fields = BaseFields & {
   value: string,
   ticker: string,
   gasLimit: string,
-  gasPrice: string,
+  gasPriceWei: string,
   numRetries: number,
   blockNumber: ?number,
   chainId: number,
@@ -38,8 +38,8 @@ export default class EthereumTransaction extends BaseModel<Fields> {
     return new BigNumber(this.attr.value);
   }
 
-  get gasPriceBN(): BigNumber {
-    return new BigNumber(this.attr.gasPrice);
+  get gasPriceWeiBN(): BigNumber {
+    return new BigNumber(this.attr.gasPriceWei);
   }
 
   get gasLimitBN(): BigNumber {
@@ -64,7 +64,7 @@ export default class EthereumTransaction extends BaseModel<Fields> {
       "value",
       "data",
       "gasLimit",
-      "gasPrice",
+      "gasPriceWei",
       "nonce",
       "ticker"
     ],

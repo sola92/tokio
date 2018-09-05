@@ -17,7 +17,7 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
     table.text("data", "longtext").notNullable();
     table.string("value").notNullable();
     table.string("gasLimit").notNullable();
-    table.string("gasPrice").notNullable();
+    table.string("gasPriceWei").notNullable();
     table
       .integer("numRetries")
       .notNullable()

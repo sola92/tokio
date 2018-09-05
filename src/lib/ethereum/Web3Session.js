@@ -28,6 +28,8 @@ const NONCE_TRACKER: { [string]: number } = {};
 
 export default class Web3Session {
   web3: Web3ApiType;
+  static ETH_DECIMALS: number = 18;
+  static ONE_WEI: BigNumber = new BigNumber("1e-18");
 
   constructor(nodeEndpoint: string) {
     this.web3 = new Web3(new Web3.providers.HttpProvider(nodeEndpoint));
@@ -200,5 +202,17 @@ export default class Web3Session {
     } else {
       return this.createRopstenSession();
     }
+  }
+
+  static toEthPrecision(value: BigNumber | number | string): BigNumber {
+    return new BigNumber(value).times(
+      new BigNumber(10).pow(Web3Session.ETH_DECIMALS)
+    );
+  }
+
+  static fromEthPrecision(value: BigNumber | number | string): BigNumber {
+    return new BigNumber(value).times(
+      new BigNumber(10).pow(-1 * Web3Session.ETH_DECIMALS)
+    );
   }
 }

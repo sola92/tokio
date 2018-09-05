@@ -16,7 +16,6 @@ export class ApiError extends Error {
 
 export const wrapAsync = (fn: Middleware): Middleware => {
   return function(req: $Request, res: $Response, next: NextFunction) {
-    console.log("wrapping");
     // Make sure to `.catch()` any errors and pass them along to the `next()`
     // middleware in the chain, in this case the error handler.
     // $FlowFixMe

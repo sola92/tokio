@@ -17,7 +17,7 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-redeclare */
 
-import type { Knex } from "knex";
+import type { Knex, Knex$Transaction } from "knex";
 
 declare module "objection" {
   declare export type ColumnType =
@@ -52,6 +52,7 @@ declare module "objection" {
     toJSON(): Json;
 
     static knex(knex?: Knex$Knex<*>): Knex$Knex<*>;
+    static bindTransaction(trx?: Knex$Transaction): this;
   }
 
   declare export type knexSnakeCaseMappers = () => Json;

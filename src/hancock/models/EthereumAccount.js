@@ -1,6 +1,6 @@
 //@flow
 import { BigNumber } from "bignumber.js";
-import type { Knex, $QueryBuilder, Knex$Transaction } from "knex";
+import type { Knex$Transaction, $QueryBuilder } from "knex";
 
 import Asset from "./Asset";
 import BaseModel from "src/lib/BaseModel";
@@ -23,8 +23,8 @@ const DEFAULT_LOCK_TTL_MS = 1000 * 60 * 60 * 60 * 2; // 2 Hours
 export type Fields = BaseFields & {
   address: EthAddress,
   lastNonce: number,
-  gasBalance: string,
-  lockExpireTime: ?number,
+  gasBalanceWei: string,
+  lockExpireTimeMs: ?number,
   // temporary storage of PK for easy retrieval
   privateKey: string
 };
@@ -32,26 +32,32 @@ export type Fields = BaseFields & {
 export default class EthereumAccount extends BaseModel<Fields> {
   static tableName = "eth_accounts";
 
-  get gasBalanceBN(): BigNumber {
-    return new BigNumber(this.attr.gasBalance);
+  get gasBalanceWeiBN(): BigNumber {
+    return new BigNumber(this.attr.gasBalanceWei);
   }
 
-  async incrementGasBalance(trx: Knex$Transaction, incr: BigNumber) {
-    const newBalance = this.gasBalanceBN.plus(incr);
+  static async findByAddress(address: string): Promise<?this> {
+    return this.findOne({ address });
+  }
+
+  async incrementGasBalanceWei(trx: Knex$Transaction, incrWei: BigNumber) {
+    const newBalance = this.gasBalanceWeiBN.plus(incrWei);
     if (newBalance.isLessThan(0)) {
       throw new InvalidBalanceError(
         `gas balance cannot be less than zero: ${newBalance.toString()}`
       );
     }
 
-    return this.update({ gasBalance: newBalance.toString() }, trx);
+    return this.update({ gasBalanceWei: newBalance.toString() }, trx);
   }
 
   async transaction(fn: (trx: Knex$Transaction) => Promise<void>) {
     await this.lock();
-    const knex: Knex = this.constructor.knex();
-    await knex.transaction(trx => fn(trx));
-    await this.unlock();
+    try {
+      await this.constructor.knex().transaction(trx => fn(trx));
+    } finally {
+      await this.releaseLock();
+    }
   }
 
   async lock(
@@ -59,49 +65,52 @@ export default class EthereumAccount extends BaseModel<Fields> {
   ): Promise<boolean> {
     const { address } = this.attr;
     const now = new Date().getTime();
+
     const numUpdated: number = await EthereumAccount.query()
+      .patch({ lockExpireTimeMs: now + ttlMs })
       .where("address", address)
       .where(
         (builder: $QueryBuilder<number>): void => {
           builder
-            .where("lockExpireTime", null)
-            .orWhere("lockExpireTime", "<", now);
+            .where("lockExpireTimeMs", null)
+            .orWhere("lockExpireTimeMs", "<", now);
         }
-      )
-      .update({ lockExpireTime: now + ttlMs });
+      );
 
     if (numUpdated == 0) {
       await this.refresh();
       throw new LockAcquisitionError(
         `failed to acquire account lock: ${address}`,
-        this.attr.lockExpireTime
+        this.attr.lockExpireTimeMs
       );
     }
 
     return true;
   }
 
-  async unlock(
+  async releaseLock(
     { ttlMs }: { ttlMs: number } = { ttlMs: DEFAULT_LOCK_TTL_MS }
   ): Promise<boolean> {
-    const { lockExpireTime, address } = this.attr;
+    const {
+      attr: { address, lockExpireTimeMs }
+    } = this;
 
     const numUpdated: number = await EthereumAccount.query()
+      .patch({ lockExpireTimeMs: null })
       .where("address", address)
       .where(
         (builder: $QueryBuilder<number>): void => {
           builder
-            .where("lockExpireTime", null)
-            .orWhere("lockExpireTime", "<=", lockExpireTime);
+            .where("lockExpireTimeMs", null)
+            .orWhere("lockExpireTimeMs", "<=", lockExpireTimeMs);
         }
-      )
-      .update({ lockExpireTime: null });
+      );
 
     if (numUpdated == 0) {
       await this.refresh();
       throw new LockReleaseError(
         `failed to release account lock: ${address}. expired`,
-        this.attr.lockExpireTime
+        this.attr.lockExpireTimeMs
       );
     }
 
@@ -111,7 +120,11 @@ export default class EthereumAccount extends BaseModel<Fields> {
   async getTokenBalance(ticker: string): Promise<?BigNumber> {
     const web3session = Web3Session.createSession();
     if (ticker.toLowerCase() === EthSession.TICKER.toLowerCase()) {
-      return await web3session.getEthBalance(this.attr.address);
+      const session = new EthSession({
+        session: web3session,
+        fromAddress: this.attr.address
+      });
+      return await session.getBalance({ inEthPrecision: false });
     }
 
     const asset: ?Asset = await Asset.fromTicker(ticker);
@@ -145,7 +158,7 @@ export default class EthereumAccount extends BaseModel<Fields> {
 
   static jsonSchema = {
     type: "object",
-    required: ["address"],
+    // required: ["address"],
 
     properties: {
       address: {
@@ -155,8 +168,8 @@ export default class EthereumAccount extends BaseModel<Fields> {
       lastNonce: {
         type: "number"
       },
-      gasBalance: { type: "string" },
-      lockedTime: { type: "integer" }
+      gasBalanceWei: { type: "string" },
+      lockExpireTimeMs: { type: ["number", "null"] }
     }
   };
 }

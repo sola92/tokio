@@ -32,7 +32,7 @@ export default class Asset extends BaseModel<Fields> {
   }
 
   static fromTicker(ticker: string): Promise<?Asset> {
-    return this.findOne({ ticker });
+    return this.findOne({ ticker: ticker.toUpperCase() });
   }
 
   static jsonSchema = {
