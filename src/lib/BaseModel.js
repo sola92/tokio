@@ -12,6 +12,7 @@ type Id = number;
 type QueryBuilder<R, F> = $QueryBuilder<R> & {
   deleteById(id: Id): Promise<>,
   findById(id: Id): Promise<?R>,
+  patch(updates: $Shape<F>): $QueryBuilder<R>,
   findOne(conditions: $Shape<F>): Promise<?R>,
   patchAndFetchById(id: Id, updates: $Shape<F>): Promise<R>,
   updateAndFetchById(id: Id, updates: $Shape<F>): Promise<R>
@@ -43,9 +44,11 @@ export default class BaseModel<F: BaseFields> extends Model {
   }
 
   async update(updates: $Shape<F>, trx?: Knex$Transaction) {
-    const newer = await this.constructor
-      .query(trx)
-      .updateAndFetchById(this.attr.id, updates);
+    const Model =
+      trx != null ? this.constructor.bindTransaction(trx) : this.constructor;
+
+    const newer = await Model.query().updateAndFetchById(this.attr.id, updates);
+
     Object.assign(this, newer);
   }
 

@@ -11,7 +11,7 @@ export default class EthSession {
   fromAddress: EthAddress;
 
   static TICKER: string = "ETH";
-  static DECIMALS: number = 18;
+  static DECIMALS: number = Web3Session.ETH_DECIMALS;
 
   constructor({
     session,
@@ -39,7 +39,7 @@ export default class EthSession {
       if (inEthPrecision) {
         return accountBalance;
       }
-      return EthSession.fromEthPrecision(accountBalance);
+      return Web3Session.fromEthPrecision(accountBalance);
     }
 
     return new BigNumber(0);
@@ -85,7 +85,7 @@ export default class EthSession {
       nonce = await session.getNonce(this.fromAddress);
     }
 
-    console.log("value", EthSession.toEthPrecision(value).toString());
+    console.log("value", Web3Session.toEthPrecision(value).toString());
     const transaction = new EthereumTx({
       from: this.fromAddress,
       // $FlowFixMe
@@ -93,7 +93,7 @@ export default class EthSession {
       // $FlowFixMe
       gasLimit: session.toHex(gasLimit),
       to: toAddress,
-      value: session.toHex(EthSession.toEthPrecision(value)),
+      value: session.toHex(Web3Session.toEthPrecision(value)),
       // $FlowFixMe
       nonce: session.toHex(nonce),
       chainId: session.toHex(chainId)
@@ -102,17 +102,5 @@ export default class EthSession {
 
     const receipt = await session.sendSignedTransaction(transaction);
     return receipt.transactionHash;
-  }
-
-  static toEthPrecision(value: BigNumber | number | string): BigNumber {
-    return new BigNumber(value).times(
-      new BigNumber(10).pow(EthSession.DECIMALS)
-    );
-  }
-
-  static fromEthPrecision(value: BigNumber | number | string): BigNumber {
-    return new BigNumber(value).times(
-      new BigNumber(10).pow(-1 * EthSession.DECIMALS)
-    );
   }
 }

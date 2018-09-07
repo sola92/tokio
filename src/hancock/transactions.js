@@ -4,8 +4,8 @@ import type { Knex$Transaction } from "knex";
 
 import { BigNumber } from "bignumber.js";
 
-import { wrapAsync, TokioRouter } from "src/lib/express";
 import Web3Session from "src/lib/ethereum/Web3Session";
+import { wrapAsync, TokioRouter } from "src/lib/express";
 
 import Asset from "./models/Asset";
 import EthereumAccount from "./models/EthereumAccount";
@@ -16,7 +16,9 @@ import {
   LockError,
   NotFoundError,
   AccountBusyError,
+  UnknownAccountError,
   InvalidBalanceError,
+  InvalidRecipientError,
   InvalidParameterError
 } from "./errors";
 
@@ -26,7 +28,7 @@ router.post(
   "/:ticker",
   wrapAsync(async (req: $Request, res: $Response) => {
     // $FlowFixMe
-    const body: Json = req.body;
+    const body: Json = req.body || {};
     const to: ?string = body.to;
     const from: ?string = body.from;
     const value: ?string = body.value;
@@ -34,16 +36,27 @@ router.post(
 
     if (to == null || from == null || value == null || ticker == null) {
       throw new InvalidParameterError(
-        `'to', 'from', 'value' and 'ticker' are required`
+        `'to', 'from', 'value' and 'ticker' are required. Got ${JSON.stringify({
+          to,
+          from,
+          value,
+          ticker
+        })}.`
       );
     }
 
-    const account: ?EthereumAccount = await EthereumAccount.findOne({
-      address: from
-    });
+    if (to == from) {
+      throw new InvalidRecipientError(`Sender cannot be reciepient ${from}`);
+    }
 
+    const asset = await Asset.fromTicker(ticker);
+    if (asset == null) {
+      throw new InvalidParameterError(`Asset not found ${ticker}`);
+    }
+
+    const account: ?EthereumAccount = await EthereumAccount.findByAddress(from);
     if (account == null) {
-      throw new InvalidParameterError(`Account not found: ${from}`);
+      throw new UnknownAccountError(`Account not found: ${from}`);
     }
 
     const pendingTxns = await EthereumTransaction.getPendingTransactions({
@@ -71,8 +84,9 @@ router.post(
         const transferAmount = new BigNumber(value);
         if (tokenBalance.isLessThan(transferAmount)) {
           throw new InvalidBalanceError(
-            `Insuffifient token balance: ${tokenBalance.toString()}${ticker}. ` +
-              `Sending ${transferAmount.toString()}${ticker}`
+            `Insuffifient token balance: ${tokenBalance.toString()}${
+              asset.attr.ticker
+            }. ` + `Sending ${transferAmount.toString()}${asset.attr.ticker}`
           );
         }
 
@@ -86,7 +100,7 @@ router.post(
 
         const maxGasCost = lastestGasLimit.times(gasPrice);
 
-        await account.incrementGasBalance(maxGasCost, trx);
+        await account.incrementGasBalanceWei(trx, maxGasCost.times(-1));
 
         const ethTxn: EthereumTransaction = await EthereumTransaction.query(
           trx

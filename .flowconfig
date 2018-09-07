@@ -11,6 +11,7 @@ src/flowlib.js
 esproposal.class_instance_fields=ignore
 esproposal.class_static_fields=ignore
 esproposal.decorators=ignore
+esproposal.optional_chaining=enable
 module.name_mapper='^src/\(.*\)$' -> '<PROJECT_ROOT>/src/\1'
 
 [strict]
