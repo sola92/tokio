@@ -9,9 +9,15 @@ import {
 } from "ethereumjs-util";
 import { mapValues } from "lodash";
 import { BigNumber } from "bignumber.js";
+import util from "util";
+
+import EthKey from "../pkey-service/EthKey";
+import IdexClient from "./IdexClient";
 
 // Matches IDEX API Response structure
-type Response = { data: any | OrderBookResponseData };
+type Response = {
+  data: any | OrderBookResponseData
+};
 
 // Single entry in IDEX OrderBook. Can be used for either Asks or Bids.
 type OrderBook = {
@@ -35,7 +41,7 @@ type OrderBookResponseData = {
 };
 
 type IDEX_API_ARG = {
-  address?: string,
+  address?: EthAddress,
   market?: string
 };
 const NO_ARG = {};
@@ -47,7 +53,7 @@ const TO_MARKET_ARG = (ticker: string): IDEX_API_ARG => ({
 });
 
 const FEE_RATIO: number = 0.03;
-const ETH_TOKEN_ADDR: string = "0x0000000000000000000000000000000000000000";
+const ETH_TOKEN_ADDR: EthAddress = "0x0000000000000000000000000000000000000000";
 
 // See IDEX API Docs (https://github.com/AuroraDAO/idex-api-docs) for info.
 function callIdex(method: string, args: IDEX_API_ARG): Promise<Response> {
@@ -55,7 +61,7 @@ function callIdex(method: string, args: IDEX_API_ARG): Promise<Response> {
 }
 
 // Returns a list of all tokens on IDEX.
-function getCurrencies() {
+export function getCurrencies() {
   return callIdex("returnCurrencies", NO_ARG).then(
     (response: Response) => response.data
   );
@@ -97,8 +103,14 @@ async function getPriceForAmount(ticker: string, amount: number) {
   return price * (1 + FEE_RATIO);
 }
 
-function getBalances(address: string) {
+function getBalances(address: EthAddress) {
   return callIdex("returnBalances", TO_ADDRESS_ARG(address)).then(
+    response => response.data
+  );
+}
+
+function getOpenOrders(address: EthAddress) {
+  return callIdex("returnOpenOrders", TO_ADDRESS_ARG(address)).then(
     response => response.data
   );
 }
@@ -106,20 +118,20 @@ function getBalances(address: string) {
 /* IDEX Contract API calls. These involve some form of mutation operation. */
 
 // This is the IDEX Contract address used for doing deposits, withdrawals, trades.
-function getIdexContractAddress() {
+export function getIdexContractAddress() {
   return callIdex("returnContractAddress", NO_ARG).then(
     response => response.data.address
   );
 }
 
-function getNextNonce(address: string): number {
+export function getNextNonce(address: EthAddress) {
   return callIdex("returnNextNonce", TO_ADDRESS_ARG(address)).then(response =>
     parseInt(response.data.nonce)
   );
 }
 
 // Post an order
-async function postOrder(
+export async function postOrder(
   contractAddr: string,
   tokenBuyAddr: string,
   amountBuy: string,
@@ -128,7 +140,8 @@ async function postOrder(
   nonce: number,
   walletAddr: string
 ) {
-  const raw = soliditySha3(
+  // $FlowFixMe
+  const rawHash: string = soliditySha3(
     {
       t: "address",
       v: contractAddr
@@ -151,7 +164,7 @@ async function postOrder(
     },
     {
       t: "uint256",
-      v: /* expires */ 0
+      v: /* expires */ "0"
     },
     {
       t: "uint256",
@@ -162,17 +175,9 @@ async function postOrder(
       v: walletAddr
     }
   );
-  let pkey = Buffer.from(
-    "6018F909C115DEFF1B767C56AAE1846AD6EB770FB14323BC7AFE2895E564F47C",
-    "hex"
-  );
-  const salted = hashPersonalMessage(toBuffer(raw));
-  const { v, r, s } = mapValues(
-    ecsign(salted, pkey),
-    (value, key) => (key === "v" ? value : bufferToHex(value))
-  );
+  const { v, r, s } = new EthKey().sign(rawHash);
   try {
-    const lol = await callIdex("order", {
+    let postOrderResponse = await callIdex("order", {
       tokenBuy: tokenBuyAddr,
       amountBuy: amountBuy,
       tokenSell: tokenSellAddr,
@@ -184,18 +189,10 @@ async function postOrder(
       r: r,
       s: s
     });
+    return postOrderResponse;
   } catch (error) {
-    console.log("error: " + JSON.stringify(error.response.data));
+    console.log("error: " + util.inspect(error.response.data));
   }
-}
-
-async function postBuyOrder(
-  tokenTicker: string,
-  price: number,
-  amount: number
-) {
-  let sellQuantity = price * amount;
-  //let amountBuy =
 }
 
 async function demo() {
@@ -219,4 +216,16 @@ async function demo() {
     "0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499"
   );
 }
-demo();
+async function idexClientDemo() {
+  let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
+  let oo = await getOpenOrders("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
+  console.log(oo);
+  try {
+    let b = await a.postBuyOrder("LINK", "0.00000029", "517242");
+    console.log("postbuyORder Resposne: " + util.inspect(b));
+  } catch (error) {
+    console.log("error: " + util.inspect(error.response.data));
+  }
+}
+//demo();
+idexClientDemo();
