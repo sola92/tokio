@@ -4,11 +4,9 @@ digital asset wallet for the world
 
 ### NVM
 
-install NVM to manage node versions
+Use [nvm](https://github.com/creationix/nvm) to manage node versions
 
-https://github.com/creationix/nvm
-
-set nvm to use `node 8.9.0`
+After installing nvm, set nvm to install and use `node 8.9.0`
 
 ```shell
 nvm install 8.9.0
@@ -23,7 +21,7 @@ Yarn is a faster, more predictable version of `npm`. Set it up as a global comma
 npm install -g yarn
 ```
 
-Install project dependencies with by running
+Install project dependencies by running
 
 ```
 yarn
@@ -53,7 +51,7 @@ tokionode <script path>
 
 ### Atom
 
-install Atom Text Editor: https://atom.io/
+install [Atom Text Editor](https://atom.io/): 
 
 run `./atom-setup.sh` to install atom plugins
 
