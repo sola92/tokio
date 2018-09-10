@@ -154,7 +154,7 @@
     ]
   },
   "scripts": {
-    "test": "babel-node ./src/test/beforeAll.js && jest --coverage",
+    "test": "tokionode ./src/test/beforeAll.js && jest --coverage",
     "build": "babel src -d lib"
   }
 }

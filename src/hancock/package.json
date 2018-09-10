@@ -6,10 +6,10 @@
   "repository": "https://github.com/sola92/tokio",
   "scripts": {
     "test": "yarn db:start && jest --coverage",
-    "db:migration:create": "../../node_modules/.bin/babel-node ../../node_modules/.bin/knex migrate:make",
-    "db:migration:latest": "../../node_modules/.bin/babel-node ../../node_modules/.bin/knex migrate:latest --env=development",
-    "db:migration:rollback": "../../node_modules/.bin/babel-node ../../node_modules/.bin/knex migrate:rollback --env=development",
-    "server": "node ./index.js",
+    "db:migration:create": "tokionode ${TOKIO_ROOT}/node_modules/.bin/knex migrate:make",
+    "db:migration:latest": "tokionode ${TOKIO_ROOT}/node_modules/.bin/knex migrate:latest --env=development",
+    "db:migration:rollback": "tokionode ${TOKIO_ROOT}/node_modules/.bin/knex migrate:rollback --env=development",
+    "server": "tokionode server.js",
     "hancock": "yarn db:start && yarn server",
     "db:start": "./start-db.sh && yarn db:migration:latest"
   }
