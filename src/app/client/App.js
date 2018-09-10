@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { observable } from "mobx";
+import { observable, action } from "mobx";
 import { observer } from "mobx-react";
 
 import "./css/app.css";
@@ -12,10 +12,11 @@ export default class App extends Component<Props> {
   @observable
   username: ?string = null;
 
-  componentDidMount() {
-    fetch("/api/users/1")
-      .then(res => res.json())
-      .then(user => (this.username = user.username));
+  @action
+  async componentDidMount() {
+    const res = await fetch("/api/users/1");
+    const user: Json = await res.json();
+    this.username = user.username;
   }
 
   render() {

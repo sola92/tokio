@@ -19,7 +19,11 @@ export const wrapAsync = (fn: Middleware): Middleware => {
     // Make sure to `.catch()` any errors and pass them along to the `next()`
     // middleware in the chain, in this case the error handler.
     // $FlowFixMe
-    fn(req, res, next).catch(next);
+    const ret = fn(req, res, next);
+    if (ret instanceof Promise) {
+      const prom: Promise<*> = ret;
+      prom.catch(next);
+    }
   };
 };
 
