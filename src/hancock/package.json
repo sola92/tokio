@@ -2,7 +2,7 @@
   "name": "hancock",
   "version": "1.0.0",
   "description": "hancock signs and broadcasts transactions",
-  "main": "index.js",
+  "main": "server.js",
   "repository": "https://github.com/sola92/tokio",
   "scripts": {
     "test": "yarn db:start && jest --coverage",
