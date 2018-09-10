@@ -1,6 +1,6 @@
 hancock signs and broadcasts transactions
 
-## API
+## Hancock API
 
 ### post a transaction
 
