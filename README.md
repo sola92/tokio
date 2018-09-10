@@ -32,7 +32,7 @@ yarn
 Append this to your `.bashrc` or `.bash_profile`
 
 ```shell
-export TOKIO_ROOT=/Users/solaogunsakin/Downloads/buyer
+export TOKIO_ROOT=<full path to project root>
 
 tokionode() {
 	${TOKIO_ROOT}/node_modules/.bin/babel-node "$@"
