@@ -12,6 +12,8 @@ import EthereumTransaction from "../models/EthereumTransaction";
 
 import EthereumTx from "ethereumjs-tx";
 
+import type { RawTransaction } from "src/lib/ethereum/typedef";
+
 import { NotFoundError } from "../errors";
 
 @processor("eth_transaction_queue")
@@ -110,12 +112,21 @@ export default class TransactionProcessor {
       throw new NotFoundError(`transaction not found ${transationId}`);
     }
 
-    const account: ?EthereumAccount = await EthereumAccount.findByAddress(
-      txn.attr.from
-    );
+    const { hash, from } = txn.attr;
+    const account: ?EthereumAccount = await EthereumAccount.findByAddress(from);
 
     if (account == null) {
       throw new NotFoundError(`account not found ${txn.attr.from}`);
+    }
+
+    if (hash != null) {
+      // Check with blockchain to see if transaction got mined.
+      const transaction: ?RawTransaction = await session.getTransaction(hash);
+      if (transaction != null && transaction.blockNumber != null) {
+        console.warn(`transaction already confirmed ${txn.attr.id}`);
+        txn.update({ blockNumber: transaction.blockNumber });
+        return;
+      }
     }
 
     if (txn.attr.blockNumber != null) {

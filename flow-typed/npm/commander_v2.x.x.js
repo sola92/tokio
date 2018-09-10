@@ -1,5 +1,5 @@
-// flow-typed signature: 9a1fb3feac221b50aab621209bf8ca9c
-// flow-typed version: 94e9f7e0a4/commander_v2.x.x/flow_>=v0.28.x
+// flow-typed signature: 2f8d6030763c8b095b61b80cc252dd2d
+// flow-typed version: 6a6e124485/commander_v2.x.x/flow_>=v0.28.x
 
 declare module "commander" {
   declare class Command extends events$EventEmitter {
@@ -275,7 +275,7 @@ declare module "commander" {
   }
 
   declare module.exports: Command & {
-    Command: Command,
-    Option: Option
+    Command: (name?: string) => Command;
+    Options: (flags: string, description?: string) => Option;
   };
 }
