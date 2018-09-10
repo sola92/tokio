@@ -4,10 +4,10 @@ import type { Knex$Transaction } from "knex";
 
 import { BigNumber } from "bignumber.js";
 
-import Web3Session from "src/lib/ethereum/Web3Session";
 import { wrapAsync, TokioRouter } from "src/lib/express";
 
 import Asset from "./models/Asset";
+import Web3Session from "src/lib/ethereum/Web3Session";
 import EthereumAccount from "./models/EthereumAccount";
 import EthereumTransaction from "./models/EthereumTransaction";
 import TransactionProcessor from "./processing/TransactionProcessor";
@@ -72,12 +72,13 @@ router.post(
     }
 
     try {
+      const nonce = await account.fetchAndIncrementNonce();
+
       await account.transaction(async (trx: Knex$Transaction) => {
-        await account.refresh();
         const tokenBalance: ?BigNumber = await account.getTokenBalance(ticker);
         if (tokenBalance == null) {
           throw new InvalidBalanceError(
-            `${ticker} balance not found for account: ${from}`
+            `${asset.attr.ticker} balance not found for account: ${from}`
           );
         }
 
@@ -90,30 +91,22 @@ router.post(
           );
         }
 
-        const nonce = account.attr.lastNonce + 1;
-        await account.update({ lastNonce: nonce }, trx);
-
         const session = Web3Session.createSession();
         const chainId = await session.getChainId();
-        const gasPrice = await session.getGasPrice();
-        const lastestGasLimit = await session.getLatestGasLimit();
-
-        const maxGasCost = lastestGasLimit.times(gasPrice);
-
-        await account.incrementGasBalanceWei(trx, maxGasCost.times(-1));
 
         const ethTxn: EthereumTransaction = await EthereumTransaction.query(
           trx
         ).insert({
           to: to,
           from: from,
+          state: "pending",
           nonce: nonce,
           chainId: chainId,
-          value: transferAmount.toString(),
-          gasPrice: gasPrice.toString(),
-          gasLimit: lastestGasLimit.toString()
+          ticker: ticker,
+          value: transferAmount.toString()
         });
 
+        res.json(ethTxn.toJSON());
         await TransactionProcessor.broadcastEthTransaction.publish(
           ethTxn.attr.id
         );

@@ -10,6 +10,10 @@ import Asset from "../models/Asset";
 import EthereumAccount from "../models/EthereumAccount";
 import EthereumTransaction from "../models/EthereumTransaction";
 
+import EthereumTx from "ethereumjs-tx";
+
+import { NotFoundError } from "../errors";
+
 @processor("eth_transaction_queue")
 export default class TransactionProcessor {
   @handler()
@@ -21,7 +25,7 @@ export default class TransactionProcessor {
     );
 
     if (txn == null) {
-      throw `transaction not found ${transationId}`;
+      throw new NotFoundError(`transaction not found ${transationId}`);
     }
 
     if (txn.attr.blockNumber != null) {
@@ -29,6 +33,7 @@ export default class TransactionProcessor {
       return;
     }
 
+    return;
     const fromAddr: ?EthereumAccount = await EthereumAccount.findOne({
       address: txn.attr.from
     });

@@ -58,15 +58,18 @@ export const createTestAssets = async () => {
 export const createAccount = async ({
   address,
   privateKey,
+  lastNonce,
   gasBalanceWei
 }: {
   address: string,
   privateKey: string,
+  lastNonce: number,
   gasBalanceWei?: BigNumber
 }): Promise<EthereumAccount> => {
   return models.EthereumAccount.query().insert({
     address,
     privateKey,
+    lastNonce,
     gasBalanceWei: (gasBalanceWei || new BigNumber("1e18")).toString()
   });
 };
