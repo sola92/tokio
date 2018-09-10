@@ -43,7 +43,7 @@ export -f tokionode
 
 ## Running Scripts
 
-Run with tokionode to support full ES6 syntax and Flow
+Run scripts with `tokionode` to support full ES6 syntax and Flow
 
 ```shell
 tokionode <script path>
@@ -51,7 +51,7 @@ tokionode <script path>
 
 ### Atom
 
-install [Atom Text Editor](https://atom.io/): 
+install [Atom Text Editor](https://atom.io/) 
 
 run `./atom-setup.sh` to install atom plugins
 
