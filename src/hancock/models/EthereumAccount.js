@@ -1,5 +1,6 @@
 //@flow
 import { BigNumber } from "bignumber.js";
+import { transaction } from "objection";
 import type { Knex$Transaction, $QueryBuilder } from "knex";
 
 import Asset from "./Asset";
@@ -9,6 +10,7 @@ import Web3Session from "src/lib/ethereum/Web3Session";
 import Erc20Session from "src/lib/ethereum/Erc20Session";
 
 import {
+  AccountBusyError,
   LockReleaseError,
   InvalidBalanceError,
   LockAcquisitionError
@@ -51,10 +53,32 @@ export default class EthereumAccount extends BaseModel<Fields> {
     return this.update({ gasBalanceWei: newBalance.toString() }, trx);
   }
 
+  async fetchAndIncrementNonce() {
+    const { lastNonce } = this.attr;
+
+    const numUpdated: number = await EthereumAccount.query()
+      .patch({ lastNonce: lastNonce + 1 })
+      .where("lastNonce", lastNonce);
+
+    if (numUpdated != 1) {
+      throw new AccountBusyError("failed to increment nonce");
+    }
+
+    return lastNonce + 1;
+  }
+
   async transaction(fn: (trx: Knex$Transaction) => Promise<void>) {
     await this.lock();
+    let trx: ?Knex$Transaction;
     try {
-      await this.constructor.knex().transaction(trx => fn(trx));
+      trx = await transaction.start(this.constructor.knex());
+      await fn(trx);
+      await trx.commit();
+    } catch (err) {
+      if (trx) {
+        await trx.rollback();
+      }
+      throw err;
     } finally {
       await this.releaseLock();
     }
@@ -63,6 +87,7 @@ export default class EthereumAccount extends BaseModel<Fields> {
   async lock(
     { ttlMs }: { ttlMs: number } = { ttlMs: DEFAULT_LOCK_TTL_MS }
   ): Promise<boolean> {
+    await this.refresh();
     const { address } = this.attr;
     const now = new Date().getTime();
 
@@ -91,6 +116,7 @@ export default class EthereumAccount extends BaseModel<Fields> {
   async releaseLock(
     { ttlMs }: { ttlMs: number } = { ttlMs: DEFAULT_LOCK_TTL_MS }
   ): Promise<boolean> {
+    await this.refresh();
     const {
       attr: { address, lockExpireTimeMs }
     } = this;
@@ -109,7 +135,7 @@ export default class EthereumAccount extends BaseModel<Fields> {
     if (numUpdated == 0) {
       await this.refresh();
       throw new LockReleaseError(
-        `failed to release account lock: ${address}. expired`,
+        `failed to release account lock: ${address}`,
         this.attr.lockExpireTimeMs
       );
     }

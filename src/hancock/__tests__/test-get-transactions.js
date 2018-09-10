@@ -29,7 +29,7 @@ test("GET /transaction on a valid transaction", async () => {
     from: "from",
     nonce: 0,
     chainId: 0,
-    data: "",
+    state: "pending",
     hash: session.randomHex(42),
     value: "0.1",
     gasPriceWei: "0.1",

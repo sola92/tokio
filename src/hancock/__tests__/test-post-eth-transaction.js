@@ -14,6 +14,8 @@ import {
 
 require("dotenv").config();
 
+jest.setTimeout(10000);
+
 const TEST_ACCOUNT: string = process.env.ROPSTEN_ACCOUNT || "";
 
 test("POST /transaction with invalid body", async () => {
@@ -96,20 +98,21 @@ test("POST /transaction with insufficient balance", async () => {
   expect(res.body.code).toBe(InvalidBalanceError.code);
 });
 
-// test("POST /transaction", async () => {
-//   const hancock = createApp();
-//   const account = await EthereumAccount.findByAddress(TEST_ACCOUNT);
-//   expect(account).not.toBeNull();
-//
-//   const res = await request(hancock)
-//     .post("/transactions/eth")
-//     .send({
-//       to: "to",
-//       from: TEST_ACCOUNT,
-//       value: Web3Session.ONE_WEI.toString()
-//     });
-//
-//   expect(res.statusCode).toBe(InvalidBalanceError.responseCode);
-//   console.log(res);
-//   expect(res.body.code).toBe(InvalidBalanceError.code);
-// });
+test("POST /transaction", async () => {
+  const hancock = createApp();
+  const account = await EthereumAccount.findByAddress(TEST_ACCOUNT);
+  const session = await Web3Session.createSession();
+  const web3Account = session.createAccount(session.randomHex(32));
+  expect(account).not.toBeNull();
+
+  const res = await request(hancock)
+    .post("/transactions/eth")
+    .send({
+      to: web3Account.address,
+      from: TEST_ACCOUNT,
+      value: Web3Session.ONE_WEI.toString()
+    });
+
+  // console.log(res);
+  expect(res.statusCode).toBe(200);
+});

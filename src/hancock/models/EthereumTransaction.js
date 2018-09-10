@@ -8,15 +8,15 @@ import { ETH_ADDRESS_LENGTH } from "./EthereumAccount";
 export type State = "pending" | "confirmed" | "fully_confirmed";
 export type Fields = BaseFields & {
   to: EthAddress,
-  hash: string,
-  data: string,
+  hash?: string,
+  data?: ?string,
   from: EthAddress,
   value: string,
   ticker: string,
-  gasLimit: string,
-  gasPriceWei: string,
+  gasLimit?: string,
+  gasPriceWei?: string,
   numRetries: number,
-  blockNumber: ?number,
+  blockNumber?: ?number,
   chainId: number,
   nonce: number,
   contractAddress: ?EthAddress,
@@ -38,12 +38,16 @@ export default class EthereumTransaction extends BaseModel<Fields> {
     return new BigNumber(this.attr.value);
   }
 
-  get gasPriceWeiBN(): BigNumber {
-    return new BigNumber(this.attr.gasPriceWei);
+  get gasPriceWeiBN(): ?BigNumber {
+    return this.attr.gasPriceWei != null
+      ? new BigNumber(this.attr.gasPriceWei)
+      : null;
   }
 
-  get gasLimitBN(): BigNumber {
-    return new BigNumber(this.attr.gasLimit);
+  get gasLimitBN(): ?BigNumber {
+    return this.attr.gasLimit != null
+      ? new BigNumber(this.attr.gasLimit)
+      : null;
   }
 
   static getPendingTransactions({
@@ -57,17 +61,7 @@ export default class EthereumTransaction extends BaseModel<Fields> {
   }
 
   static jsonSchema = {
-    required: [
-      "to",
-      "from",
-      "hash",
-      "value",
-      "data",
-      "gasLimit",
-      "gasPriceWei",
-      "nonce",
-      "ticker"
-    ],
+    required: ["to", "from", "value", "nonce", "ticker", "state"],
 
     properties: {
       hash: { type: "string", minLength: 40, maxLength: 100 },

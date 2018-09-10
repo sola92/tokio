@@ -11,13 +11,13 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
     table.string("to", 42).notNullable();
     table
       .string("hash", 100)
-      .notNullable()
+      .nullable()
       .index()
       .unique();
-    table.text("data", "longtext").notNullable();
+    table.text("data", "longtext").nullable();
     table.string("value").notNullable();
-    table.string("gasLimit").notNullable();
-    table.string("gasPriceWei").notNullable();
+    table.string("gasLimit").nullable();
+    table.string("gasPriceWei").nullable();
     table
       .integer("numRetries")
       .notNullable()
