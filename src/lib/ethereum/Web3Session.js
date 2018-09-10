@@ -30,6 +30,7 @@ export default class Web3Session {
   web3: Web3ApiType;
   static ETH_DECIMALS: number = 18;
   static ONE_WEI: BigNumber = new BigNumber("1e-18");
+  static ONE_GWEI: BigNumber = new BigNumber("1e-9");
 
   constructor(nodeEndpoint: string) {
     this.web3 = new Web3(new Web3.providers.HttpProvider(nodeEndpoint));

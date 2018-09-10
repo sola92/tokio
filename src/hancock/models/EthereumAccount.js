@@ -46,11 +46,24 @@ export default class EthereumAccount extends BaseModel<Fields> {
     const newBalance = this.gasBalanceWeiBN.plus(incrWei);
     if (newBalance.isLessThan(0)) {
       throw new InvalidBalanceError(
-        `gas balance cannot be less than zero: ${newBalance.toString()}`
+        `new gas balance would be less than zero: ${newBalance.toString()}WEI ` +
+          `with increment of ${incrWei.toString()}WEI`
       );
     }
 
-    return this.update({ gasBalanceWei: newBalance.toString() }, trx);
+    const numUpdated: number = await EthereumAccount.bindTransaction(trx)
+      .query()
+      .patch({ gasBalanceWei: newBalance.toString() })
+      .where("gasBalanceWei", this.attr.gasBalanceWei);
+
+    if (numUpdated != 1) {
+      throw new InvalidBalanceError(
+        `failed to increment gasBalance by ${incrWei.toString()}WEI ` +
+          `, expected balance of ${this.attr.gasBalanceWei}WEI`
+      );
+    }
+
+    return true;
   }
 
   async fetchAndIncrementNonce() {

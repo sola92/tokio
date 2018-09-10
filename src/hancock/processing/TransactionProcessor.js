@@ -107,7 +107,15 @@ export default class TransactionProcessor {
     );
 
     if (txn == null) {
-      throw `transaction not found ${transationId}`;
+      throw new NotFoundError(`transaction not found ${transationId}`);
+    }
+
+    const account: ?EthereumAccount = await EthereumAccount.findByAddress(
+      txn.attr.from
+    );
+
+    if (account == null) {
+      throw new NotFoundError(`account not found ${txn.attr.from}`);
     }
 
     if (txn.attr.blockNumber != null) {
@@ -116,8 +124,9 @@ export default class TransactionProcessor {
     }
 
     // Add 10gwei to gas price and re-broadcast
-    const increment = new BigNumber(session.web3.utils.toWei(10, "gwei"));
-    const newGasPrice = txn.gasPriceBN.plus(increment);
+    const increment = Web3Session.ONE_GWEI.times(10);
+    account.incrementGasBalanceWei(null, increment);
+    const newGasPrice = txn.gasPriceWeiBN.plus(increment);
     await txn.update({
       gasPrice: newGasPrice.toString(),
       numRetries: txn.attr.numRetries + 1
