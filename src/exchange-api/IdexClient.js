@@ -47,7 +47,7 @@ export default class IdexClient {
     this.nonce = UNINITIALIZED_NONCE;
   }
 
-  async getNonce(): number {
+  async getNonce(): Promise<number> {
     if (this.nonce == UNINITIALIZED_NONCE) {
       this.nonce = await getNextNonce(this.ethWalletAddress);
       console.log("zz got nonce to be " + this.nonce);

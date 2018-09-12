@@ -16,7 +16,7 @@ import IdexClient from "./IdexClient";
 
 // Matches IDEX API Response structure
 type Response = {
-  data: any | OrderBookResponseData
+  data: any
 };
 
 // Single entry in IDEX OrderBook. Can be used for either Asks or Bids.
@@ -35,9 +35,6 @@ type OrderBook = {
   v: number,
   r: string,
   s: string
-};
-type OrderBookResponseData = {
-  asks: Array<OrderBook>
 };
 
 type IDEX_API_ARG = {
