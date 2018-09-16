@@ -17,7 +17,6 @@ let CURRENCIES = {};
 
 async function getCurrencyInfo(ticker: string) {
   let currencyInfo = CURRENCIES[ticker];
-  console.log("zcurren" + currencyInfo);
   if (currencyInfo == null) {
     CURRENCIES = await getCurrencies();
     currencyInfo = CURRENCIES[ticker];
@@ -50,7 +49,6 @@ export default class IdexClient {
   async getNonce(): Promise<number> {
     if (this.nonce == UNINITIALIZED_NONCE) {
       this.nonce = await getNextNonce(this.ethWalletAddress);
-      console.log("zz got nonce to be " + this.nonce);
     }
     return this.nonce;
   }

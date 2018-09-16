@@ -9,12 +9,11 @@ import {
 } from "ethereumjs-util";
 import { mapValues } from "lodash";
 import { BigNumber } from "bignumber.js";
-import util from "util";
 
 import EthKey from "../pkey-service/EthKey";
-import IdexClient from "./IdexClient";
+import CannotFillOrderError from "./errors";
 
-// Matches IDEX API Response structure
+// General IDEX Response structure.
 type Response = {
   data: any
 };
@@ -80,7 +79,8 @@ function getAsksOrderBook(ticker: string): Promise<Array<OrderBook>> {
 // Does not include exchange fee.
 function determineOrderBookPrice(
   amount: number,
-  asks: Array<OrderBook>
+  asks: Array<OrderBook>,
+  ticker: string
 ): number {
   let remainingAmount = BigNumber(amount);
   let totalPrice = BigNumber(0);
@@ -146,7 +146,6 @@ export async function postOrder(
   nonce: number,
   walletAddr: string
 ) {
-  // $FlowFixMe
   const rawHash: string = soliditySha3(
     {
       t: "address",
@@ -197,41 +196,6 @@ export async function postOrder(
     });
     return postOrderResponse;
   } catch (error) {
-    console.log("error: " + util.inspect(error.response.data));
+    console.log("error posting order to IDEX: " + error.response.data.error);
   }
 }
-
-async function demo() {
-  let linkPrice = await getPriceForAmount("link", 10000);
-  console.log("10000 link costs " + linkPrice + " ETH");
-  let balance = await getBalances("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
-  console.log("current balance: " + JSON.stringify(balance));
-  let contractAddr = await getIdexContractAddress();
-  console.log("contractAddr: " + contractAddr);
-  let linkContractAddr = "0x514910771af9ca656af840dff83e8264ecf986ca";
-  let nextNonce = await getNextNonce(
-    "0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499"
-  );
-  let postOrderResult = await postOrder(
-    contractAddr,
-    linkContractAddr,
-    "2923366585636809477",
-    ETH_TOKEN_ADDR,
-    "400000000000000000",
-    nextNonce,
-    "0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499"
-  );
-}
-async function idexClientDemo() {
-  let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
-  let oo = await getOpenOrders("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
-  console.log(oo);
-  try {
-    let b = await a.postBuyOrder("LINK", "0.00000029", "517242");
-    console.log("postbuyORder Resposne: " + util.inspect(b));
-  } catch (error) {
-    console.log("error: " + util.inspect(error.response.data));
-  }
-}
-//demo();
-idexClientDemo();
