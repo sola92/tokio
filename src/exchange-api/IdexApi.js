@@ -89,14 +89,23 @@ function determineOrderBookPrice(
     totalPrice = totalPrice.plus(fillableAmount.multipliedBy(asks[i].price));
     remainingAmount = remainingAmount.minus(fillableAmount);
   }
+  if (remainingAmount > 0) {
+    throw new CannotFillOrderError(
+      ticker,
+      /* exchange */ "IDEX",
+      /* fillableAmount */ BigNumber(amount).minus(remainingAmount),
+      /* requestedAmount */ BigNumber(amount),
+      /* checkOnly */ true
+    );
+  }
   return totalPrice.toNumber();
 }
 
 // Returns amount of ETH required to purchase 'amount' of 'ticker' token.
 // Includes exchange fee.
-async function getPriceForAmount(ticker: string, amount: number) {
+export async function getPriceForAmount(ticker: string, amount: number) {
   let asks: Array<OrderBook> = await getAsksOrderBook(ticker);
-  let price = determineOrderBookPrice(amount, asks);
+  let price = determineOrderBookPrice(amount, asks, ticker);
   return price * (1 + FEE_RATIO);
 }
 
