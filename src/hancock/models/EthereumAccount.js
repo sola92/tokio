@@ -71,6 +71,7 @@ export default class EthereumAccount extends BaseModel<Fields> {
 
     const numUpdated: number = await EthereumAccount.query()
       .patch({ lastNonce: lastNonce + 1 })
+      .where("id", this.attr.id)
       .where("lastNonce", lastNonce);
 
     if (numUpdated != 1) {

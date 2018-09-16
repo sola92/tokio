@@ -18,7 +18,7 @@ test("test Asset.isTicker", async () => {
 });
 
 test("test Asset.fromToken", async () => {
-  await Asset.query().insert({
+  await Asset.insert({
     name: "Bar Token",
     type: "erc20",
     ticker: "BAR",

@@ -37,8 +37,22 @@ export const clearAllTables = async () => {
   }
 };
 
+export const randomStringId = (length: number = 32): string => {
+  let text = "";
+  const possible =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+  for (let i = 0; i < length; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+
+  return text;
+};
+
+export const randomId = (): number => Math.floor(Math.random() * 1000) + 1;
+
 export const createTestAssets = async () => {
-  await models.Asset.query().insert({
+  await models.Asset.insert({
     name: "Test Token",
     type: "erc20",
     ticker: "TST",
@@ -47,7 +61,7 @@ export const createTestAssets = async () => {
     contractAddress: contractAddress
   });
 
-  await models.Asset.query().insert({
+  await models.Asset.insert({
     name: "Ether",
     type: "coin",
     ticker: "ETH",
@@ -66,7 +80,7 @@ export const createAccount = async ({
   lastNonce: number,
   gasBalanceWei?: BigNumber
 }): Promise<EthereumAccount> => {
-  return models.EthereumAccount.query().insert({
+  return models.EthereumAccount.insert({
     address,
     privateKey,
     lastNonce,

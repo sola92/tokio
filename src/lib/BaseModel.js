@@ -62,6 +62,11 @@ export default class BaseModel<F: BaseFields> extends Model {
     return super.query(trx);
   }
 
+  static insert(fields: $Shape<F>, trx?: Knex$Transaction): Promise<this> {
+    // $FlowFixMe
+    return super.query(trx).insert(fields);
+  }
+
   static fromJson<M: BaseModel<F>>(fields: $Shape<F>) {
     // $FlowFixMe
     return super.fromJson(fields);

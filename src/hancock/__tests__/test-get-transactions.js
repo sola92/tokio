@@ -24,7 +24,7 @@ test("GET /transaction with invalid transaction id", async () => {
 test("GET /transaction on a valid transaction", async () => {
   const hancock = createApp();
   const session = Web3Session.createSession();
-  const txn: EthereumTransaction = await EthereumTransaction.query().insert({
+  const txn: EthereumTransaction = await EthereumTransaction.insert({
     to: "to",
     from: "from",
     nonce: 0,
