@@ -45,3 +45,8 @@ export class AccountBusyError extends ApiError {
   static code: string = "ACCOUNT_BUSY";
   static responseCode: number = 503;
 }
+
+export class InvalidStateError extends ApiError {
+  static code: string = "INVALID_STATE";
+  static responseCode: number = 400;
+}

@@ -44,6 +44,10 @@ declare module "objection" {
     static idColumn: string;
     static jsonSchema: JsonSchema;
 
+    static HasManyRelation: Class<*>;
+    static BelongsToOneRelation: Class<*>;
+    static ManyToManyRelation: Class<*>;
+
     $beforeInsert(): void;
     $beforeUpdate(): void;
     $parseDatabaseJson(json: ?Json): ?Json;
