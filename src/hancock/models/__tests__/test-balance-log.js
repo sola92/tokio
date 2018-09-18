@@ -1,7 +1,7 @@
 //@flow
 import "jest";
 import "src/hancock/init-db";
-import BalanceLog from "../BalanceLog";
+import BalanceEvent from "../BalanceEvent";
 import UserBalance from "../UserBalance";
 import AccountBalance from "../AccountBalance";
 
@@ -15,7 +15,7 @@ test("test pending deposit", async () => {
   const ASSET_ID = randomId();
   const ACCOUNT_ID = randomId();
 
-  await BalanceLog.insert({
+  await BalanceEvent.insert({
     userId: USER_ID,
     accountId: ACCOUNT_ID,
     assetId: ASSET_ID,
@@ -60,7 +60,7 @@ test("test pending deposit becoming confirmed", async () => {
   const ASSET_ID = randomId();
   const ACCOUNT_ID = randomId();
 
-  const deposit: BalanceLog = await BalanceLog.insert({
+  const deposit: BalanceEvent = await BalanceEvent.insert({
     userId: USER_ID,
     accountId: ACCOUNT_ID,
     assetId: ASSET_ID,
@@ -123,7 +123,7 @@ test("test withdrawal", async () => {
   const ASSET_ID = randomId();
   const ACCOUNT_ID = randomId();
 
-  const deposit: BalanceLog = await BalanceLog.insert({
+  const deposit: BalanceEvent = await BalanceEvent.insert({
     userId: USER_ID,
     accountId: ACCOUNT_ID,
     assetId: ASSET_ID,
@@ -158,7 +158,7 @@ test("test withdrawal", async () => {
   );
   await deposit.confirm();
 
-  const withdrawal: BalanceLog = await BalanceLog.insert({
+  const withdrawal: BalanceEvent = await BalanceEvent.insert({
     userId: USER_ID,
     accountId: ACCOUNT_ID,
     assetId: ASSET_ID,
@@ -195,7 +195,7 @@ test("test cancelled withdrawal", async () => {
   const ASSET_ID = randomId();
   const ACCOUNT_ID = randomId();
 
-  const deposit: BalanceLog = await BalanceLog.insert({
+  const deposit: BalanceEvent = await BalanceEvent.insert({
     userId: USER_ID,
     accountId: ACCOUNT_ID,
     assetId: ASSET_ID,
@@ -230,7 +230,7 @@ test("test cancelled withdrawal", async () => {
   );
   await deposit.confirm();
 
-  const withdrawal: BalanceLog = await BalanceLog.insert({
+  const withdrawal: BalanceEvent = await BalanceEvent.insert({
     userId: USER_ID,
     accountId: ACCOUNT_ID,
     assetId: ASSET_ID,
@@ -268,7 +268,7 @@ test("test cancelled deposit", async () => {
   const ASSET_ID = randomId();
   const ACCOUNT_ID = randomId();
 
-  const deposit: BalanceLog = await BalanceLog.insert({
+  const deposit: BalanceEvent = await BalanceEvent.insert({
     userId: USER_ID,
     accountId: ACCOUNT_ID,
     assetId: ASSET_ID,
@@ -318,7 +318,7 @@ test("test cancelling a confirmed withdrawal fails", async () => {
   const ASSET_ID = randomId();
   const ACCOUNT_ID = randomId();
 
-  const deposit: BalanceLog = await BalanceLog.insert({
+  const deposit: BalanceEvent = await BalanceEvent.insert({
     userId: USER_ID,
     accountId: ACCOUNT_ID,
     assetId: ASSET_ID,
@@ -351,7 +351,7 @@ test("test cancelling a confirmed withdrawal fails", async () => {
     new BigNumber(10).toString()
   );
 
-  const withdrawal: BalanceLog = await BalanceLog.insert({
+  const withdrawal: BalanceEvent = await BalanceEvent.insert({
     userId: USER_ID,
     accountId: ACCOUNT_ID,
     assetId: ASSET_ID,
@@ -387,7 +387,7 @@ test("test cancelling a confirmed deposit fails", async () => {
   const ASSET_ID = randomId();
   const ACCOUNT_ID = randomId();
 
-  const deposit: BalanceLog = await BalanceLog.insert({
+  const deposit: BalanceEvent = await BalanceEvent.insert({
     userId: USER_ID,
     accountId: ACCOUNT_ID,
     assetId: ASSET_ID,
@@ -436,7 +436,7 @@ test("test cannot change log amount", async () => {
   const ASSET_ID = randomId();
   const ACCOUNT_ID = randomId();
 
-  const deposit: BalanceLog = await BalanceLog.insert({
+  const deposit: BalanceEvent = await BalanceEvent.insert({
     userId: USER_ID,
     accountId: ACCOUNT_ID,
     assetId: ASSET_ID,

@@ -9,7 +9,7 @@ import { wrapAsync, TokioRouter } from "src/lib/express";
 import Asset from "./models/Asset";
 import Web3Session from "src/lib/ethereum/Web3Session";
 import Account from "./models/Account";
-import BalanceLog from "./models/BalanceLog";
+import BalanceEvent from "./models/BalanceEvent";
 import AccountBalance from "./models/AccountBalance";
 import EthereumTransaction from "./models/EthereumTransaction";
 import TransactionProcessor from "./processing/TransactionProcessor";
@@ -111,7 +111,7 @@ router.post(
           trx
         );
 
-        await BalanceLog.insert(
+        await BalanceEvent.insert(
           {
             userId: userId,
             accountId: account.attr.id,

@@ -15,7 +15,7 @@ import BaseModel from "src/lib/BaseModel";
 import User from "src/hancock/models/User";
 import Asset from "src/hancock/models/Asset";
 import Account from "src/hancock/models/Account";
-import BalanceLog from "src/hancock/models/BalanceLog";
+import BalanceEvent from "src/hancock/models/BalanceEvent";
 import EthSession from "src/lib/ethereum/EthSession";
 import Web3Session from "src/lib/ethereum/Web3Session";
 
@@ -101,8 +101,8 @@ export const depositToAccount = async (
   userId: number,
   assetId: number,
   amount: BigNumber
-): Promise<BalanceLog> => {
-  return BalanceLog.insert({
+): Promise<BalanceEvent> => {
+  return BalanceEvent.insert({
     userId: userId,
     accountId: account.attr.id,
     assetId: assetId,

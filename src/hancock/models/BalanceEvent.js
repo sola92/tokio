@@ -6,7 +6,7 @@ import type { BaseFields } from "src/lib/BaseModel";
 import type { Knex$Transaction } from "knex";
 
 export type BalanceAction = "withdraw" | "trade" | "deposit";
-export type BalanceLogState = "pending" | "confirmed" | "cancelled";
+export type BalanceEventState = "pending" | "confirmed" | "cancelled";
 export type Fields = BaseFields & {
   userId: number,
   accountId: number,
@@ -15,11 +15,11 @@ export type Fields = BaseFields & {
   action: string,
   note: string,
   identifier?: string,
-  state: BalanceLogState
+  state: BalanceEventState
 };
 
-export default class BalanceLog extends BaseModel<Fields> {
-  static tableName = "balance_logs";
+export default class BalanceEvent extends BaseModel<Fields> {
+  static tableName = "balance_events";
 
   get amountBN(): BigNumber {
     return new BigNumber(this.attr.amount);

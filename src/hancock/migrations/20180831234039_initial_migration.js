@@ -70,7 +70,7 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
     table.unique(["assetId", "userId"]);
   });
 
-  await knex.schema.createTable("balance_logs", table => {
+  await knex.schema.createTable("balance_events", table => {
     table.increments("id").primary();
     table.timestamp("createdAt", 3).defaultTo(knex.fn.now(3));
     table.timestamp("updatedAt", 3).defaultTo(knex.fn.now(3));
@@ -162,7 +162,7 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
     BEGIN
       DECLARE available_balance DECIMAL(65, 30);
       DECLARE pending_balance DECIMAL(65, 30);
-      SELECT SUM(amount) INTO available_balance FROM balance_logs
+      SELECT SUM(amount) INTO available_balance FROM balance_events
       WHERE (
         userId = user_id and
         assetId = asset_id and
@@ -174,7 +174,7 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
         )
       );
 
-      SELECT SUM(amount) INTO pending_balance FROM balance_logs
+      SELECT SUM(amount) INTO pending_balance FROM balance_events
       WHERE (
         userId = user_id and
         assetId = asset_id and
@@ -236,9 +236,9 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
     END
     `);
 
-  await knex.raw(`DROP TRIGGER IF EXISTS balance_logs_update_trigger;`);
-  await knex.raw(`CREATE TRIGGER balance_logs_update_trigger
-      AFTER UPDATE on balance_logs
+  await knex.raw(`DROP TRIGGER IF EXISTS balance_events_update_trigger;`);
+  await knex.raw(`CREATE TRIGGER balance_events_update_trigger
+      AFTER UPDATE on balance_events
       FOR EACH ROW
     BEGIN
       IF OLD.amount != NEW.amount
@@ -255,9 +255,9 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
 
     	CALL update_account_balance(NEW.accountId, NEW.userId, NEW.assetId);
     END`);
-  await knex.raw(`DROP TRIGGER IF EXISTS balance_logs_insert_trigger;`);
-  await knex.raw(`CREATE TRIGGER balance_logs_insert_trigger
-      AFTER INSERT on balance_logs
+  await knex.raw(`DROP TRIGGER IF EXISTS balance_events_insert_trigger;`);
+  await knex.raw(`CREATE TRIGGER balance_events_insert_trigger
+      AFTER INSERT on balance_events
       FOR EACH ROW
     BEGIN
     	CALL update_account_balance(NEW.accountId, NEW.userId, NEW.assetId);
@@ -286,7 +286,7 @@ exports.down = async (knex: Knex<*>, Promise: Promise<*>) => {
   await knex.schema.dropTableIfExists("user_balances");
   await knex.schema.dropTableIfExists("eth_accounts");
   await knex.schema.dropTableIfExists("account_balances");
-  await knex.schema.dropTableIfExists("balance_logs");
+  await knex.schema.dropTableIfExists("balance_events");
   await knex.raw(`
     DROP TRIGGER IF EXISTS account_balances_update_trigger;
   `);
@@ -297,9 +297,9 @@ exports.down = async (knex: Knex<*>, Promise: Promise<*>) => {
     DROP PROCEDURE IF EXISTS update_account_balance;
   `);
   await knex.raw(`
-    DROP TRIGGER IF EXISTS balance_logs_insert_trigger;
+    DROP TRIGGER IF EXISTS balance_events_insert_trigger;
   `);
   await knex.raw(`
-    DROP TRIGGER IF EXISTS balance_logs_update_trigger;
+    DROP TRIGGER IF EXISTS balance_events_update_trigger;
   `);
 };
