@@ -9,10 +9,19 @@ export type Fields = BaseFields & {};
 
 export default class User extends BaseModel<Fields> {
   static tableName = "users";
+  accounts: Array<Account>;
+
+  async addAccount(account: Account) {
+    await this.constructor
+      .knex()
+      .insert({ userId: this.attr.id, accountId: account.attr.id })
+      .into("user_accounts");
+    await this.$loadRelated("accounts");
+  }
 
   static get relationMappings() {
     return {
-      movies: {
+      accounts: {
         relation: Model.ManyToManyRelation,
         modelClass: Account,
         join: {

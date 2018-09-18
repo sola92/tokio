@@ -7,7 +7,6 @@ import Web3Session from "src/lib/ethereum/Web3Session";
 import Erc20Session from "src/lib/ethereum/Erc20Session";
 
 import Asset from "../models/Asset";
-import EthereumAccount from "../models/EthereumAccount";
 import EthereumTransaction from "../models/EthereumTransaction";
 
 import EthereumTx from "ethereumjs-tx";

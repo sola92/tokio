@@ -3,7 +3,7 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-redeclare */
 
-import { Model } from "objection";
+import { Model, transaction } from "objection";
 import moment from "moment";
 import type { Knex, $QueryBuilder, Knex$Transaction } from "knex";
 
@@ -41,6 +41,20 @@ export default class BaseModel<F: BaseFields> extends Model {
         new Proxy(this, {});
       }
     });
+  }
+
+  async transaction(fn: (trx: Knex$Transaction) => Promise<void>) {
+    let trx: ?Knex$Transaction;
+    try {
+      trx = await transaction.start(this.constructor.knex());
+      await fn(trx);
+      await trx.commit();
+    } catch (err) {
+      if (trx) {
+        await trx.rollback();
+      }
+      throw err;
+    }
   }
 
   async update(updates: $Shape<F>, trx?: Knex$Transaction) {

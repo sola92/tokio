@@ -8,7 +8,9 @@ import { wrapAsync, TokioRouter } from "src/lib/express";
 
 import Asset from "./models/Asset";
 import Web3Session from "src/lib/ethereum/Web3Session";
-import EthereumAccount from "./models/EthereumAccount";
+import Account from "./models/Account";
+import BalanceLog from "./models/BalanceLog";
+import AccountBalance from "./models/AccountBalance";
 import EthereumTransaction from "./models/EthereumTransaction";
 import TransactionProcessor from "./processing/TransactionProcessor";
 
@@ -25,16 +27,24 @@ import {
 const router = new TokioRouter();
 
 router.post(
-  "/:ticker",
+  "/:userId/:ticker",
   wrapAsync(async (req: $Request, res: $Response) => {
     // $FlowFixMe
     const body: Json = req.body || {};
     const to: ?string = body.to;
     const from: ?string = body.from;
     const value: ?string = body.value;
+    const note: ?string = body.note;
     const ticker: ?string = req.params.ticker;
+    const userIdStr: ?string = req.params.userId;
 
-    if (to == null || from == null || value == null || ticker == null) {
+    if (
+      to == null ||
+      from == null ||
+      value == null ||
+      ticker == null ||
+      userIdStr == null
+    ) {
       throw new InvalidParameterError(
         `'to', 'from', 'value' and 'ticker' are required. Got ${JSON.stringify({
           to,
@@ -45,66 +55,76 @@ router.post(
       );
     }
 
+    const userId = parseInt(userIdStr);
     if (to == from) {
       throw new InvalidRecipientError(`Sender cannot be reciepient ${from}`);
     }
 
-    const asset = await Asset.fromTicker(ticker);
+    const asset = await Asset.fromTickerOptional(ticker);
     if (asset == null) {
       throw new InvalidParameterError(`Asset not found ${ticker}`);
     }
 
-    const account: ?EthereumAccount = await EthereumAccount.findByAddress(from);
+    const account: ?Account = await Account.findByAddress(from, asset.attr.id);
     if (account == null) {
       throw new UnknownAccountError(`Account not found: ${from}`);
     }
 
-    const pendingTxns = await EthereumTransaction.getPendingTransactions({
-      from
+    const accountBalance = await AccountBalance.fetch({
+      userId,
+      assetId: asset.attr.id,
+      accountId: account.attr.id
     });
 
-    if (pendingTxns.length > 0) {
-      throw new AccountBusyError(
-        `account (${from}) has unresolved transactions: ${pendingTxns
-          .map(t => t.attr.id)
-          .join(",")}`
+    if (accountBalance == null) {
+      throw new InvalidBalanceError(
+        `${asset.attr.ticker} balance not found for account: ${from}`
+      );
+    }
+
+    const transferAmount = new BigNumber(value);
+    if (accountBalance.availableBalanceBN.isLessThan(transferAmount)) {
+      const tokenBalance = accountBalance.availableBalanceBN;
+      throw new InvalidBalanceError(
+        `Insuffifient token balance: ${tokenBalance.toString()}${
+          asset.attr.ticker
+        }. ` + `Sending ${transferAmount.toString()}${asset.attr.ticker}`
       );
     }
 
     try {
-      const nonce = await account.fetchAndIncrementNonce();
-
       await account.transaction(async (trx: Knex$Transaction) => {
-        const tokenBalance: ?BigNumber = await account.getTokenBalance(ticker);
-        if (tokenBalance == null) {
-          throw new InvalidBalanceError(
-            `${asset.attr.ticker} balance not found for account: ${from}`
-          );
-        }
-
-        const transferAmount = new BigNumber(value);
-        if (tokenBalance.isLessThan(transferAmount)) {
-          throw new InvalidBalanceError(
-            `Insuffifient token balance: ${tokenBalance.toString()}${
-              asset.attr.ticker
-            }. ` + `Sending ${transferAmount.toString()}${asset.attr.ticker}`
-          );
-        }
-
         const session = Web3Session.createSession();
+        const nonce = await account.fetchAndIncrementNonce();
         const chainId = await session.getChainId();
 
-        const ethTxn: EthereumTransaction = await EthereumTransaction.query(
+        const ethTxn = await EthereumTransaction.insert(
+          {
+            to: to,
+            from: from,
+            state: "pending",
+            nonce: nonce,
+            chainId: chainId,
+            ticker: ticker,
+            value: transferAmount.toString()
+          },
           trx
-        ).insert({
-          to: to,
-          from: from,
-          state: "pending",
-          nonce: nonce,
-          chainId: chainId,
-          ticker: ticker,
-          value: transferAmount.toString()
-        });
+        );
+
+        await BalanceLog.insert(
+          {
+            userId: userId,
+            accountId: account.attr.id,
+            assetId: asset.attr.id,
+            amount: transferAmount.isNegative()
+              ? transferAmount.toString()
+              : transferAmount.times(-1).toString(),
+            action: "withdraw",
+            note: note || `withdrawal to ${to}`,
+            state: "pending"
+          },
+          trx
+        );
 
         res.json(ethTxn.toJSON());
         await TransactionProcessor.broadcastEthTransaction.publish(
@@ -136,7 +156,7 @@ router.get(
         throw new InvalidParameterError("transaction id is required");
       }
 
-      const asset = await Asset.fromTicker(ticker);
+      const asset = await Asset.fromTickerOptional(ticker);
       if (asset == null) {
         throw new NotFoundError(`Asset not found ${ticker}`);
       }

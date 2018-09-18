@@ -12,10 +12,16 @@ import {
 } from "src/lib/ethereum/abi/ropsten/test-standard-token";
 
 import BaseModel from "src/lib/BaseModel";
+import User from "src/hancock/models/User";
+import Asset from "src/hancock/models/Asset";
+import Account from "src/hancock/models/Account";
+import BalanceLog from "src/hancock/models/BalanceLog";
 import EthSession from "src/lib/ethereum/EthSession";
-import EthereumAccount from "src/hancock/models/EthereumAccount";
+import Web3Session from "src/lib/ethereum/Web3Session";
 
 import { apiErrorMiddleware } from "src/lib/express";
+
+import uuidv1 from "uuid/v1";
 
 export const clearTable = async (modelName: string) => {
   const knex: Knex<*> = BaseModel.knex();
@@ -37,17 +43,7 @@ export const clearAllTables = async () => {
   }
 };
 
-export const randomStringId = (length: number = 32): string => {
-  let text = "";
-  const possible =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-  for (let i = 0; i < length; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-
-  return text;
-};
+export const randomString = (): string => uuidv1();
 
 export const randomId = (): number => Math.floor(Math.random() * 1000) + 1;
 
@@ -71,19 +67,59 @@ export const createTestAssets = async () => {
 
 export const createAccount = async ({
   address,
+  assetId,
   privateKey,
-  lastNonce,
-  gasBalanceWei
+  lastNonce
 }: {
+  assetId: number,
   address: string,
   privateKey: string,
-  lastNonce: number,
-  gasBalanceWei?: BigNumber
-}): Promise<EthereumAccount> => {
-  return models.EthereumAccount.insert({
+  lastNonce: number
+}): Promise<Account> => {
+  return models.Account.insert({
     address,
-    privateKey,
+    assetId,
     lastNonce,
-    gasBalanceWei: (gasBalanceWei || new BigNumber("1e18")).toString()
+    privateKey
   });
+};
+
+export const createRandomEthAccount = async (): Promise<Account> => {
+  const eth = await Asset.fromTicker("eth");
+  const session = Web3Session.createRopstenSession();
+  const w3Account = session.createAccount(session.randomHex(32));
+  return models.Account.insert({
+    address: w3Account.address,
+    assetId: eth.attr.id,
+    lastNonce: 0,
+    privateKey: w3Account.privateKey
+  });
+};
+
+export const depositToAccount = async (
+  account: Account,
+  userId: number,
+  assetId: number,
+  amount: BigNumber
+): Promise<BalanceLog> => {
+  return BalanceLog.insert({
+    userId: userId,
+    accountId: account.attr.id,
+    assetId: assetId,
+    amount: amount.toString(),
+    action: "deposit",
+    state: "confirmed",
+    note: "note"
+  });
+};
+
+export const createUserWithEthAccount = async (
+  balance: BigNumber
+): Promise<User> => {
+  const user = await User.insert({});
+  const eth = await Asset.fromTicker("eth");
+  const account = await createRandomEthAccount();
+  await user.addAccount(account);
+  await depositToAccount(account, user.attr.id, eth.attr.id, balance);
+  return user;
 };

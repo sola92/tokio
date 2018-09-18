@@ -30,4 +30,8 @@ export default class Account extends BaseModel<Fields> {
 
     return lastNonce + 1;
   }
+
+  static findByAddress(address: string, assetId: number): Promise<?this> {
+    return this.query().findOne({ address, assetId });
+  }
 }

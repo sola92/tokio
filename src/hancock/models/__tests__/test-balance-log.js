@@ -8,7 +8,7 @@ import AccountBalance from "../AccountBalance";
 import { InvalidStateError } from "src/hancock/errors";
 
 import { BigNumber } from "bignumber.js";
-import { randomId, randomStringId } from "src/test/util";
+import { randomId } from "src/test/util";
 
 test("test pending deposit", async () => {
   const USER_ID = randomId();

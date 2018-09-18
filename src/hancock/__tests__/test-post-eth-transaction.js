@@ -1,10 +1,12 @@
 //@flow
 import "jest";
+import { BigNumber } from "bignumber.js";
 import { createApp } from "src/hancock/server";
 import request from "supertest";
 
+import { randomId, createUserWithEthAccount } from "src/test/util";
+
 import Web3Session from "src/lib/ethereum/Web3Session";
-import EthereumAccount from "../models/EthereumAccount";
 import {
   InvalidBalanceError,
   UnknownAccountError,
@@ -16,13 +18,13 @@ require("dotenv").config();
 
 jest.setTimeout(10000);
 
-const TEST_ACCOUNT: string = process.env.ROPSTEN_ACCOUNT || "";
-
 test("POST /transaction with invalid body", async () => {
+  const user = await createUserWithEthAccount(new BigNumber(0));
+
   const hancock = createApp();
   for (const param of ["to", "from", "value"]) {
     const res = await request(hancock)
-      .post("/transactions/eth")
+      .post(`/transactions/${user.attr.id}/eth`)
       .send({
         [param]: param
       });
@@ -34,14 +36,16 @@ test("POST /transaction with invalid body", async () => {
 
 test("POST /transaction with invalid ticker", async () => {
   const hancock = createApp();
+  const user = await createUserWithEthAccount(new BigNumber(10));
+  const account = user.accounts[0];
   const session = await Web3Session.createSession();
   const web3Account = session.createAccount(session.randomHex(32));
 
   const res = await request(hancock)
-    .post("/transactions/xzy")
+    .post(`/transactions/${user.attr.id}/xzy`)
     .send({
       to: web3Account.address,
-      from: TEST_ACCOUNT,
+      from: account.attr.address,
       value: "0.01"
     });
 
@@ -51,11 +55,13 @@ test("POST /transaction with invalid ticker", async () => {
 
 test("POST /transaction with same sender and recipient", async () => {
   const hancock = createApp();
+  const user = await createUserWithEthAccount(new BigNumber(10));
+  const account = user.accounts[0];
   const res = await request(hancock)
-    .post("/transactions/eth")
+    .post(`/transactions/${user.attr.id}/eth`)
     .send({
-      to: TEST_ACCOUNT,
-      from: TEST_ACCOUNT,
+      to: account.attr.address,
+      from: account.attr.address,
       value: "0.01"
     });
 
@@ -70,7 +76,7 @@ test("POST /transaction with unknown sender account", async () => {
   const web3Account2 = session.createAccount(session.randomHex(32));
 
   const res = await request(hancock)
-    .post("/transactions/eth")
+    .post(`/transactions/${randomId()}/eth`)
     .send({
       to: web3Account.address,
       from: web3Account2.address,
@@ -83,14 +89,14 @@ test("POST /transaction with unknown sender account", async () => {
 
 test("POST /transaction with insufficient balance", async () => {
   const hancock = createApp();
-  const account = await EthereumAccount.findByAddress(TEST_ACCOUNT);
-  expect(account).not.toBeNull();
+  const user = await createUserWithEthAccount(new BigNumber(10));
+  const account = user.accounts[0];
 
   const res = await request(hancock)
-    .post("/transactions/eth")
+    .post(`/transactions/${user.attr.id}/eth`)
     .send({
       to: "to",
-      from: TEST_ACCOUNT,
+      from: account.attr.address,
       value: "20000000"
     });
 
@@ -100,19 +106,19 @@ test("POST /transaction with insufficient balance", async () => {
 
 test("POST /transaction", async () => {
   const hancock = createApp();
-  const account = await EthereumAccount.findByAddress(TEST_ACCOUNT);
+  const user = await createUserWithEthAccount(new BigNumber(10));
+  const account = user.accounts[0];
+
   const session = await Web3Session.createSession();
   const web3Account = session.createAccount(session.randomHex(32));
-  expect(account).not.toBeNull();
 
   const res = await request(hancock)
-    .post("/transactions/eth")
+    .post(`/transactions/${user.attr.id}/eth`)
     .send({
       to: web3Account.address,
-      from: TEST_ACCOUNT,
-      value: Web3Session.ONE_WEI.toString()
+      from: account.attr.address,
+      value: "1"
     });
 
-  // console.log(res);
   expect(res.statusCode).toBe(200);
 });

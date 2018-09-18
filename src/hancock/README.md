@@ -5,7 +5,7 @@ hancock signs and broadcasts transactions
 ### post a transaction
 
 ```shell
- POST /transactions/:ticker {to: "0x...", from: "0x...", value: "0.0001"}
+ POST /transactions/:userId/:ticker {to: "0x...", from: "0x...", value: "0.0001"}
 ```
 
 ### Get transaction

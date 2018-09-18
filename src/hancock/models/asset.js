@@ -31,7 +31,12 @@ export default class Asset extends BaseModel<Fields> {
     return JSON.parse(this.attr.abi);
   }
 
-  static fromTicker(ticker: string): Promise<?Asset> {
+  static fromTicker(ticker: string): Promise<Asset> {
+    // $FlowFixMe
+    return this.findOne({ ticker: ticker.toUpperCase() });
+  }
+
+  static fromTickerOptional(ticker: string): Promise<?Asset> {
     return this.findOne({ ticker: ticker.toUpperCase() });
   }
 

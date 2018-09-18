@@ -36,22 +36,4 @@ export default class BalanceLog extends BaseModel<Fields> {
 
     return this.update({ state: "cancelled" }, trx);
   }
-
-  static jsonSchema = {
-    type: "object",
-
-    properties: {
-      accountId: {
-        type: "number"
-      },
-      assetId: {
-        type: "number"
-      },
-      amount: { type: "string" },
-      action: { type: "string" },
-      note: { type: "string" },
-      state: { type: "string" },
-      identifier: { type: ["string", null] }
-    }
-  };
 }

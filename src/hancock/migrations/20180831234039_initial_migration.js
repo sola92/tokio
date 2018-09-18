@@ -2,48 +2,6 @@
 import Knex from "knex";
 
 exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
-  await knex.schema.createTable("eth_accounts", table => {
-    table.increments("id").primary();
-    table
-      .string("address", 42)
-      .notNullable()
-      .index()
-      .unique();
-    table.timestamp("createdAt", 3).defaultTo(knex.fn.now(3));
-    table.timestamp("updatedAt", 3).defaultTo(knex.fn.now(3));
-
-    table
-      .string("gasBalanceWei")
-      .defaultTo("0")
-      .notNullable()
-      .comment(
-        `amount of gas (in wei) we have in this account for processing transfers`
-      );
-
-    table
-      .string("privateKey", 100)
-      .comment(`this is temporary. will be migrated elsewhere`);
-
-    table
-      .integer("lastNonce")
-      .notNullable()
-      .defaultTo(0).comment(`
-        last nonce used to issue a transaction from this address. this is
-        usually number of transactions that have been sent from this address
-      `);
-
-    table.bigInteger("lockExpireTimeMs").nullable().comment(`
-          if set, account is locked and value is the timestamp (in ms) that the
-          lock expires
-        `);
-
-    // temporary storage of PK for easy retrieval
-    table.comment(`
-      has an entry for every ethereum address we own. if the blockNumber is null,
-      transaction has not been confirmed yet
-    `);
-  });
-
   await knex.schema.createTable("account_balances", table => {
     table.increments("id").primary();
     table.timestamp("createdAt", 3).defaultTo(knex.fn.now(3));
@@ -140,7 +98,7 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
       .notNullable();
 
     table
-      .string("note")
+      .text("note")
       .notNullable()
       .comment(`describe what this transaction is in detail`)
       .notNullable();
@@ -170,7 +128,7 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
     table.timestamp("updatedAt", 3).defaultTo(knex.fn.now(3));
 
     table.integer("assetId").notNullable();
-    table.integer("address").notNullable();
+    table.string("address", 300).notNullable();
     table.integer("lastNonce").notNullable();
 
     table
