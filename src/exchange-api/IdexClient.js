@@ -1,11 +1,15 @@
 //@flow
 import {
+  getOrdersForAmount,
   getCurrencies,
   getIdexContractAddress,
   getNextNonce,
-  postOrder
+  postOrder,
+  trade
 } from "./IdexApi";
 import { BigNumber } from "bignumber.js";
+
+import type { OrderPrice } from "./IdexApi";
 
 const ETH_DECIMALS_MULTIPLIER = "1000000000000000000";
 const ETH_TOKEN_ADDRESS: EthAddress =
@@ -59,7 +63,7 @@ export default class IdexClient {
     this.nonce += 1;
   }
 
-  // Selling ETH to buy a token.
+  // Posting an order to sell ETH to buy a token.
   async postBuyOrder(tokenTicker: string, price: string, amount: string) {
     const buyPrice = new BigNumber(price);
     const buyAmount = new BigNumber(amount);
@@ -83,6 +87,28 @@ export default class IdexClient {
       sellAmountWei.toFixed(),
       nonce,
       this.ethWalletAddress
+    );
+    return postOrderResponse;
+  }
+
+  // Buying a token by filling buy orders (sell ETH)
+  async buyToken(
+    tokenTicker: string,
+    amount: number,
+    price: string,
+    expectedTotalPrice: string,
+    riskTolerance: number
+  ) {
+    let orderPrice: OrderPrice = await getOrdersForAmount(amount, tokenTicker);
+
+    let nonce = await this.getNonce();
+
+    // Call IdexAPI to post the Order
+    let postOrderResponse = await trade(
+      orderPrice.orders,
+      amount.toString(),
+      this.ethWalletAddress,
+      nonce
     );
     return postOrderResponse;
   }
