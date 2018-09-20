@@ -167,10 +167,17 @@
     "coverageReporters": [
       "json",
       "html"
-    ]
+    ],
+    "moduleNameMapper": {
+      "src": "./src"
+    }
   },
+  "private": true,
+  "workspaces": [
+    "src/*"
+  ],
   "scripts": {
-    "test": "tokionode ./src/test/beforeAll.js && jest --coverage",
+    "test": "babel-node src/test/beforeAll.js && jest --coverage",
     "build": "babel src -d lib"
   }
 }
