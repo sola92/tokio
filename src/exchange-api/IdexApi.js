@@ -11,7 +11,7 @@ import { mapValues } from "lodash";
 import { BigNumber } from "bignumber.js";
 
 import EthKey from "../pkey-service/EthKey";
-import CannotFillOrderError from "./errors";
+import { CannotFillOrderError } from "./errors";
 
 // General IDEX Response structure.
 type Response = {
@@ -20,21 +20,10 @@ type Response = {
 
 // Single entry in IDEX OrderBook. Can be used for either Asks or Bids.
 type OrderBook = {
-  // Read API args
   price: string,
   amount: string,
-  orderHash: string,
-  // Post API args
-  tokenBuy: string,
-  amountBuy: string,
-  tokenSell: string,
-  amountSell: string,
-  address: string,
-  nonce: number,
-  expires: number,
-  v: number,
-  r: string,
-  s: string
+  type: OrderType,
+  orderHash: string
 };
 
 export type OrderType = "buy" | "sell";
@@ -48,10 +37,7 @@ type IDEX_API_ARG = {
   address?: EthAddress,
   market?: string
 };
-const NO_ARG = {};
-const TO_ADDRESS_ARG = (addr: string): IDEX_API_ARG => ({
-  address: addr
-});
+
 const TO_MARKET_ARG = (ticker: string): IDEX_API_ARG => ({
   market: "ETH_" + ticker.toUpperCase()
 });
@@ -61,40 +47,45 @@ const ETH_TOKEN_ADDR: EthAddress = "0x0000000000000000000000000000000000000000";
 
 // See IDEX API Docs (https://github.com/AuroraDAO/idex-api-docs) for info.
 function callIdex(method: string, args: any): Promise<Response> {
-  console.log(JSON.stringify(args));
   return Axios.post("https://api.idex.market/" + method, args);
 }
 
 // Returns a list of all tokens on IDEX.
 export function getCurrencies() {
-  return callIdex("returnCurrencies", NO_ARG).then(
+  return callIdex("returnCurrencies", /* args */ {}).then(
     (response: Response) => response.data
   );
 }
 
-async function getTickerInfo(ticker: string) {
+export function getTickerInfo(ticker: string) {
   return callIdex("returnTicker", TO_MARKET_ARG(ticker)).then(
     (response: Response) => response.data
   );
 }
 
-export function getAsksOrderBook(ticker: string): Promise<Array<OrderBook>> {
+export function getOrderBook(
+  ticker: string,
+  type: OrderType
+): Promise<Array<OrderBook>> {
   return callIdex("returnOrderBook", TO_MARKET_ARG(ticker)).then(
-    (response: Response) => response.data.asks
+    (response: Response) =>
+      type === "buy" ? response.data.asks : response.data.bids
   );
 }
 
+// Returns OrderPrice which has the minimum orders to satisfy the desired amount
+// and contains the total price (excluding exchange fees).
 export async function getOrdersForAmount(
   amount: number,
   ticker: string,
-  checkOnly: boolean = false
+  type: OrderType
 ): Promise<OrderPrice> {
-  let asks: Array<OrderBook> = await getAsksOrderBook(ticker);
+  const asks: Array<OrderBook> = await getOrderBook(ticker, type);
   let remainingAmount = BigNumber(amount);
   let totalPrice = BigNumber(0);
   let i = 0;
   for (i = 0; i < asks.length && remainingAmount.isGreaterThan(0); i++) {
-    let filledAmount = BigNumber.minimum(asks[i].amount, remainingAmount);
+    const filledAmount = BigNumber.minimum(asks[i].amount, remainingAmount);
     totalPrice = totalPrice.plus(filledAmount.multipliedBy(asks[i].price));
     remainingAmount = remainingAmount.minus(filledAmount);
   }
@@ -104,10 +95,10 @@ export async function getOrdersForAmount(
       ticker,
       /* exchange */ "IDEX",
       /* fillableAmount */ BigNumber(amount).minus(remainingAmount),
-      /* requestedAmount */ BigNumber(amount),
-      checkOnly
+      /* requestedAmount */ BigNumber(amount)
     );
   }
+  // sanity check.
   if (remainingAmount.isLessThan(0)) {
     throw new Error(
       "Unexpected: remainingAmount=" +
@@ -132,23 +123,25 @@ export async function getOrdersForAmount(
 // Returns amount of ETH required to purchase 'amount' of 'ticker' token.
 // Includes exchange fee.
 export async function getPriceForAmount(ticker: string, amount: number) {
-  const orderPrice: OrderPrice = await getOrdersForAmount(
-    amount,
-    ticker,
-    /* checkOnly */ true
-  );
+  const orderPrice: OrderPrice = await getOrdersForAmount(amount, ticker);
   return orderPrice.totalPrice.multipliedBy(1 + FEE_RATIO);
 }
 
-function getBalances(address: EthAddress) {
-  return callIdex("returnBalances", TO_ADDRESS_ARG(address)).then(
+export function getBalances(address: EthAddress) {
+  return callIdex("returnBalances", /* args */ { address: address }).then(
     response => response.data
   );
 }
 
-function getOpenOrders(address: EthAddress) {
-  return callIdex("returnOpenOrders", TO_ADDRESS_ARG(address)).then(
+export function getOpenOrders(address: EthAddress) {
+  return callIdex("returnOpenOrders", /* args */ { address: address }).then(
     response => response.data
+  );
+}
+
+export function getNextNonce(address: EthAddress) {
+  return callIdex("returnNextNonce", /* args */ { address: address }).then(
+    response => parseInt(response.data.nonce)
   );
 }
 
@@ -156,18 +149,14 @@ function getOpenOrders(address: EthAddress) {
 
 // This is the IDEX Contract address used for doing deposits, withdrawals, trades.
 export function getIdexContractAddress() {
-  return callIdex("returnContractAddress", NO_ARG).then(
+  return callIdex("returnContractAddress", /* args */ {}).then(
     response => response.data.address
   );
 }
 
-export function getNextNonce(address: EthAddress) {
-  return callIdex("returnNextNonce", TO_ADDRESS_ARG(address)).then(response =>
-    parseInt(response.data.nonce)
-  );
-}
-
-// Post an order
+// Post an order.
+// Returns the response from IDEX.
+// https://github.com/AuroraDAO/idex-api-docs#order
 export async function postOrder(
   contractAddr: string,
   tokenBuyAddr: string,
@@ -177,6 +166,7 @@ export async function postOrder(
   nonce: number,
   walletAddr: string
 ) {
+  // Hash and then sign values
   const rawHash: string = soliditySha3(
     {
       t: "address",
@@ -213,7 +203,7 @@ export async function postOrder(
   );
   const { v, r, s } = new EthKey().sign(rawHash);
   try {
-    let postOrderResponse = await callIdex("order", {
+    return await callIdex("order", {
       tokenBuy: tokenBuyAddr,
       amountBuy: amountBuy,
       tokenSell: tokenSellAddr,
@@ -225,12 +215,14 @@ export async function postOrder(
       r: r,
       s: s
     });
-    return postOrderResponse;
   } catch (error) {
     console.log("error posting order to IDEX: " + error.response.data.error);
   }
 }
 
+// Fill an order.
+// Returns the response from IDEX.
+// https://github.com/AuroraDAO/idex-api-docs#trade
 export async function trade(
   orders: Array<OrderBook>,
   amount: string,
@@ -282,8 +274,7 @@ export async function trade(
     }
   }
   try {
-    let tradeResponse = await callIdex("trade", trades);
-    return tradeResponse;
+    return await callIdex("trade", trades);
   } catch (error) {
     console.log("error calling trade() on IDEX: " + error.response.data.error);
     throw error;

@@ -7,6 +7,7 @@ import {
   postOrder,
   trade
 } from "./IdexApi";
+import { TotalPriceIncreasedError } from "./errors";
 import { BigNumber } from "bignumber.js";
 
 import type { OrderPrice } from "./IdexApi";
@@ -18,7 +19,6 @@ const UNINITIALIZED_NONCE = -1;
 
 // Dictionary of all tokens on IDEX. Retrieved from IDEX.
 let CURRENCIES = {};
-
 async function getCurrencyInfo(ticker: string) {
   let currencyInfo = CURRENCIES[ticker];
   if (currencyInfo == null) {
@@ -31,10 +31,7 @@ async function getCurrencyInfo(ticker: string) {
 // This isn't expected to change once initialized.
 let IDEX_CONTRACT_ADDRESS: EthAddress;
 async function initIdexContractAddress() {
-  if (IDEX_CONTRACT_ADDRESS == null) {
-    IDEX_CONTRACT_ADDRESS = await getIdexContractAddress();
-  }
-  return IDEX_CONTRACT_ADDRESS;
+  IDEX_CONTRACT_ADDRESS = await getIdexContractAddress();
 }
 initIdexContractAddress();
 
@@ -50,8 +47,8 @@ export default class IdexClient {
     this.nonce = UNINITIALIZED_NONCE;
   }
 
-  async getNonce(): Promise<number> {
-    if (this.nonce == UNINITIALIZED_NONCE) {
+  async getNonce(forceFetch: boolean = false): Promise<number> {
+    if (this.nonce == UNINITIALIZED_NONCE || forceFetch) {
       this.nonce = await getNextNonce(this.ethWalletAddress);
     }
     return this.nonce;
@@ -67,19 +64,21 @@ export default class IdexClient {
   async postBuyOrder(tokenTicker: string, price: string, amount: string) {
     const buyPrice = new BigNumber(price);
     const buyAmount = new BigNumber(amount);
-    const sellAmountEth = buyPrice.multipliedBy(buyAmount);
 
+    // Convert the amount of ETH to sell to Wei.
+    const sellAmountEth = buyPrice.multipliedBy(buyAmount);
     const sellAmountWei = sellAmountEth.multipliedBy(ETH_DECIMALS_MULTIPLIER);
 
+    // Convert the amount of token to sell to its decimals
     const buyTokenCurrencyInfo = await getCurrencyInfo(tokenTicker);
     const buyAmountDecimals = buyAmount.multipliedBy(
       "1" + "0".repeat(buyTokenCurrencyInfo.decimals)
     );
 
-    let nonce = await this.getNonce();
+    const nonce = await this.getNonce();
 
     // Call IdexAPI to post the Order
-    let postOrderResponse = await postOrder(
+    const postOrderResponse = await postOrder(
       IDEX_CONTRACT_ADDRESS,
       buyTokenCurrencyInfo.address,
       buyAmountDecimals.toFixed(),
@@ -88,6 +87,7 @@ export default class IdexClient {
       nonce,
       this.ethWalletAddress
     );
+    incrementNonce();
     return postOrderResponse;
   }
 
@@ -95,21 +95,42 @@ export default class IdexClient {
   async buyToken(
     tokenTicker: string,
     amount: number,
-    price: string,
     expectedTotalPrice: string,
-    riskTolerance: number
+    priceTolerance: number
   ) {
-    let orderPrice: OrderPrice = await getOrdersForAmount(amount, tokenTicker);
+    const orderPrice: OrderPrice = await getOrdersForAmount(
+      amount,
+      tokenTicker
+    );
 
-    let nonce = await this.getNonce();
+    const expTotalPriceBN = BigNumber(expectedTotalPrice);
+    const actualPriceBN = BigNumber(orderPrice.totalPrice);
+    if (actualPriceBN > expTotalPriceBN) {
+      const priceError = expTotalPriceBN
+        .minus(expectedTotalPrice)
+        .dividedBy(expTotalPriceBN);
+      if (priceError.isGreaterThan(priceTolerance)) {
+        throw new TotalPriceIncreasedError(
+          tokenTicker,
+          "IDEX",
+          amount,
+          expTotalPriceBN,
+          actualPriceBN,
+          priceTolerance
+        );
+      }
+    }
+
+    const nonce = await this.getNonce();
 
     // Call IdexAPI to post the Order
-    let postOrderResponse = await trade(
+    const buyTokenResponse = await trade(
       orderPrice.orders,
-      amount.toString(),
+      amount.toFixed(),
       this.ethWalletAddress,
       nonce
     );
-    return postOrderResponse;
+    incrementNonce();
+    return buyTokenResponse;
   }
 }
