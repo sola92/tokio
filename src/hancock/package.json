@@ -2,14 +2,19 @@
   "name": "hancock",
   "version": "1.0.0",
   "description": "hancock signs and broadcasts transactions",
+  "jest": {
+    "moduleNameMapper": {
+      "src": "./src"
+    }
+  },
   "main": "server.js",
   "repository": "https://github.com/sola92/tokio",
   "scripts": {
     "test": "yarn db:start && jest --coverage",
-    "db:migration:create": "tokionode ${TOKIO_ROOT}/node_modules/.bin/knex migrate:make",
-    "db:migration:latest": "tokionode ${TOKIO_ROOT}/node_modules/.bin/knex migrate:latest --env=development",
-    "db:migration:rollback": "tokionode ${TOKIO_ROOT}/node_modules/.bin/knex migrate:rollback --env=development",
-    "server": "tokionode server.js",
+    "db:migration:create": "babel-node ${TOKIO_ROOT}/node_modules/.bin/knex migrate:make",
+    "db:migration:latest": "babel-node ${TOKIO_ROOT}/node_modules/.bin/knex migrate:latest --env=development",
+    "db:migration:rollback": "babel-node ${TOKIO_ROOT}/node_modules/.bin/knex migrate:rollback --env=development",
+    "server": "babel-node server.js",
     "hancock": "yarn db:start && yarn server",
     "db:start": "./start-db.sh && yarn db:migration:latest"
   }

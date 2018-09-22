@@ -33,25 +33,19 @@ Append this to your `.bashrc` or `.bash_profile`
 
 ```shell
 export TOKIO_ROOT=<full path to project root>
-
-tokionode() {
-	${TOKIO_ROOT}/node_modules/.bin/babel-node "$@"
-}
-
-export -f tokionode
 ```
 
 ## Running Scripts
 
-Run scripts with `tokionode` to support full ES6 syntax and Flow
+Run scripts with `babel-node` to support full ES6 syntax and Flow
 
 ```shell
-tokionode <script path>
+babel-node <script path>
 ```
 
 ### Atom
 
-install [Atom Text Editor](https://atom.io/) 
+install [Atom Text Editor](https://atom.io/)
 
 run `./atom-setup.sh` to install atom plugins
 
