@@ -7,11 +7,18 @@ import type { BaseFields } from "src/lib/BaseModel";
 import Account from "./Account";
 import UserBalance from "./UserBalance";
 
-export type Fields = BaseFields & {};
+export type Fields = BaseFields & {
+  isHouse: boolean
+};
 
 export default class User extends BaseModel<Fields> {
   static tableName = "users";
   accounts: Array<Account>;
+
+  static getHouseUser(): Promise<this> {
+    // $FlowFixMe
+    return this.findOne({ isHouse: true });
+  }
 
   async addAccount(account: Account) {
     await this.constructor

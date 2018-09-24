@@ -1,8 +1,11 @@
 //@flow
+import { BigNumber } from "bignumber.js";
 import BaseModel from "src/lib/BaseModel";
 import type { BaseFields } from "src/lib/BaseModel";
 
 import { AccountBusyError } from "../errors";
+
+import UserBalance from "./UserBalance";
 
 export type Fields = BaseFields & {
   assetId: number,
@@ -29,6 +32,14 @@ export default class Account extends BaseModel<Fields> {
     }
 
     return lastNonce + 1;
+  }
+
+  async getHouseBalance(assetId: number): Promise<BigNumber> {
+    const userBalance = await UserBalance.fetch({
+      assetId,
+      userId: 0 /* House user id is always 0 */
+    });
+    return userBalance ? userBalance.availableBalanceBN : new BigNumber(0);
   }
 
   static findByAddress(address: string, assetId: number): Promise<?this> {

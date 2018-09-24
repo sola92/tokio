@@ -71,17 +71,25 @@ export default class Web3Session {
     return this.web3.utils.randomHex(size);
   }
 
-  toWei(number: string | number, unit: EthUnit): string {
-    return this.web3.utils.toWei(number, unit);
+  toWei(number: string | number, unit: EthUnit): BigNumber {
+    return new BigNumber(this.web3.utils.toWei(number, unit));
+  }
+
+  fromWei(number: string | BigNumber, unit: EthUnit): BigNumber {
+    return new BigNumber(this.web3.utils.fromWei(number.toString(), unit));
+  }
+
+  weiToEther(number: string | BigNumber): BigNumber {
+    return new BigNumber(this.web3.utils.fromWei(number.toString(), "ether"));
   }
 
   clearWallet() {
     return this.web3.eth.accounts.wallet.clear();
   }
 
-  async getGasPrice(): Promise<BigNumber> {
+  async getGasPriceWei(unit: EthUnit = "wei"): Promise<BigNumber> {
     const price = await this.web3.eth.getGasPrice();
-    return new BigNumber(price);
+    return new BigNumber(this.fromWei(price, unit));
   }
 
   async getEthBalance(address: EthAddress): Promise<?BigNumber> {

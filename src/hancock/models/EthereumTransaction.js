@@ -3,6 +3,8 @@ import { BigNumber } from "bignumber.js";
 import BaseModel from "../../lib/BaseModel";
 import type { BaseFields } from "src/lib/BaseModel";
 
+import Web3Session from "src/lib/ethereum/Web3Session";
+
 export type State = "pending" | "confirmed" | "fully_confirmed";
 export type Fields = BaseFields & {
   to: EthAddress,
@@ -10,13 +12,14 @@ export type Fields = BaseFields & {
   data?: ?string,
   from: EthAddress,
   value: string,
-  ticker: string,
   gasLimit?: string,
+  gasUsed?: string,
   gasPriceWei?: string,
   numRetries: number,
   blockNumber?: ?number,
   chainId: number,
   nonce: number,
+  assetId: number,
   contractAddress: ?EthAddress,
   state: State
 };
@@ -24,16 +27,16 @@ export type Fields = BaseFields & {
 export default class EthereumTransaction extends BaseModel<Fields> {
   static tableName = "eth_transaction";
 
-  get publicId(): string {
-    return `${this.attr.ticker}-${this.attr.id}`;
-  }
-
   get isERC20(): boolean {
     return this.attr.contractAddress != null;
   }
 
   get valueBN(): BigNumber {
     return new BigNumber(this.attr.value);
+  }
+
+  get gasUsedBN(): ?BigNumber {
+    return this.attr.gasUsed != null ? new BigNumber(this.attr.gasUsed) : null;
   }
 
   get gasPriceWeiBN(): ?BigNumber {
@@ -46,5 +49,30 @@ export default class EthereumTransaction extends BaseModel<Fields> {
     return this.attr.gasLimit != null
       ? new BigNumber(this.attr.gasLimit)
       : null;
+  }
+
+  get confirmed() {
+    const { state, blockNumber } = this.attr;
+    return state == "confirmed" && blockNumber != null;
+  }
+
+  async syncWithNetwork(): Promise<boolean> {
+    const { hash } = this.attr;
+    if (this.confirmed) {
+      return true;
+    }
+
+    if (hash == null) {
+      return false;
+    }
+
+    const session = Web3Session.createSession();
+    const w3Txn = await session.getTransaction(hash);
+    if (w3Txn == null) {
+      return false;
+    }
+
+    await this.update({ blockNumber: w3Txn.blockNumber, state: "confirmed" });
+    return true;
   }
 }

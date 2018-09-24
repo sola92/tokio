@@ -114,12 +114,20 @@ export const depositToAccount = async (
 };
 
 export const createUserWithEthAccount = async (
-  balance: BigNumber
+  balance: BigNumber,
+  houseBalance: BigNumber
 ): Promise<User> => {
   const user = await User.insert({});
   const eth = await Asset.fromTicker("eth");
   const account = await createRandomEthAccount();
   await user.addAccount(account);
-  await depositToAccount(account, user.attr.id, eth.attr.id, balance);
+  await depositToAccount(account, user.id, eth.id, balance);
+
+  const house = await User.getHouseUser();
+  await depositToAccount(account, house.id, eth.id, houseBalance);
   return user;
+};
+
+export const createHouseUser = async (): Promise<User> => {
+  return User.insert({ isHouse: true });
 };

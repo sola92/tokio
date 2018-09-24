@@ -31,6 +31,15 @@ export default class Asset extends BaseModel<Fields> {
     return JSON.parse(this.attr.abi);
   }
 
+  get isEth(): boolean {
+    return this.isTicker("eth");
+  }
+
+  get isErc20(): boolean {
+    const { ABI, contractAddress } = this.attr;
+    return ABI != null && contractAddress != null;
+  }
+
   static fromTicker(ticker: string): Promise<Asset> {
     // $FlowFixMe
     return this.findOne({ ticker: ticker.toUpperCase() });

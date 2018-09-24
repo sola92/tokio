@@ -351,7 +351,8 @@ export type Eth = {
     blockNumberOrHash: string | number | "latest" /* gived latest block */,
     returnTransactionObjects?: boolean,
     callback?: Callback<Block>
-  ) => Promise<Block>
+  ) => Promise<Block>,
+  getGasPrice: () => Promise<string>
 };
 
 export type EthUnit =
@@ -386,7 +387,8 @@ export type Utils = {
   isAddress: (str: any) => boolean,
   utf8ToHex: (str: string) => string,
   randomHex: (size: number) => string,
-  toWei: (number: string | number, unit: EthUnit) => string
+  toWei: (number: string | number, unit: EthUnit) => string,
+  fromWei: (number: string | BigNumber, unit: EthUnit) => string
 };
 
 export type Web3ApiType = {

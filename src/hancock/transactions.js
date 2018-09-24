@@ -6,8 +6,11 @@ import { BigNumber } from "bignumber.js";
 
 import { wrapAsync, TokioRouter } from "src/lib/express";
 
-import Asset from "./models/Asset";
+import FeeEstimator from "./fee-estimate";
 import Web3Session from "src/lib/ethereum/Web3Session";
+
+import User from "./models/User";
+import Asset from "./models/Asset";
 import Account from "./models/Account";
 import BalanceEvent from "./models/BalanceEvent";
 import AccountBalance from "./models/AccountBalance";
@@ -83,6 +86,12 @@ router.post(
     }
 
     const transferAmount = new BigNumber(value);
+    if (transferAmount.isNegative()) {
+      throw new InvalidParameterError(
+        `amount cannot be negative: ${transferAmount.toString()}`
+      );
+    }
+
     if (accountBalance.availableBalanceBN.isLessThan(transferAmount)) {
       const tokenBalance = accountBalance.availableBalanceBN;
       throw new InvalidBalanceError(
@@ -98,6 +107,12 @@ router.post(
         const nonce = await account.fetchAndIncrementNonce();
         const chainId = await session.getChainId();
 
+        const house = await User.getHouseUser();
+
+        const gasEstimate: BigNumber = await FeeEstimator.estimateGasUsage(
+          asset
+        );
+        const gasPriceWei = await FeeEstimator.estimateGasPrice(asset, "wei");
         const ethTxn = await EthereumTransaction.insert(
           {
             to: to,
@@ -105,8 +120,29 @@ router.post(
             state: "pending",
             nonce: nonce,
             chainId: chainId,
-            ticker: ticker,
+            gasLimit: gasEstimate.toString(),
+            gasPriceWei: gasPriceWei.toString(),
+            assetId: asset.id,
             value: transferAmount.toString()
+          },
+          trx
+        );
+
+        // Charge the gas fees to the house.
+        const estimateFee = gasPriceWei.times(gasEstimate);
+        await BalanceEvent.insert(
+          {
+            userId: house.id,
+            accountId: account.id,
+            assetId: asset.id,
+            amount: session
+              .weiToEther(estimateFee)
+              .times(-1)
+              .toString(),
+            action: "gas",
+            note: `gas for withdrawal to ${to}`,
+            state: "pending",
+            withdrawalId: ethTxn.id
           },
           trx
         );
@@ -116,12 +152,11 @@ router.post(
             userId: userId,
             accountId: account.attr.id,
             assetId: asset.attr.id,
-            amount: transferAmount.isNegative()
-              ? transferAmount.toString()
-              : transferAmount.times(-1).toString(),
+            amount: transferAmount.times(-1).toString(),
             action: "withdraw",
             note: note || `withdrawal to ${to}`,
-            state: "pending"
+            state: "pending",
+            withdrawalId: ethTxn.attr.id
           },
           trx
         );
@@ -162,7 +197,7 @@ router.get(
       }
 
       let transaction: ?EthereumTransaction;
-      if (asset.isTicker("ETH") || asset.attr.type === "erc20") {
+      if (asset.isEth || asset.isErc20) {
         transaction = await EthereumTransaction.findById(transactionId);
       }
 

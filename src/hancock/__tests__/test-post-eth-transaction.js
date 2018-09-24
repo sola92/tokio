@@ -19,10 +19,13 @@ import {
 
 require("dotenv").config();
 
-jest.setTimeout(10000);
+jest.setTimeout(100000);
 
 test("POST /transaction with invalid body", async () => {
-  const user = await createUserWithEthAccount(new BigNumber(0));
+  const user = await createUserWithEthAccount(
+    new BigNumber(0),
+    new BigNumber(0.1)
+  );
 
   const hancock = createApp();
   for (const param of ["to", "from", "value"]) {
@@ -39,7 +42,10 @@ test("POST /transaction with invalid body", async () => {
 
 test("POST /transaction with invalid ticker", async () => {
   const hancock = createApp();
-  const user = await createUserWithEthAccount(new BigNumber(10));
+  const user = await createUserWithEthAccount(
+    new BigNumber(10),
+    new BigNumber(0.1)
+  );
   const account = user.accounts[0];
   const session = await Web3Session.createSession();
   const web3Account = session.createAccount(session.randomHex(32));
@@ -58,7 +64,10 @@ test("POST /transaction with invalid ticker", async () => {
 
 test("POST /transaction with same sender and recipient", async () => {
   const hancock = createApp();
-  const user = await createUserWithEthAccount(new BigNumber(10));
+  const user = await createUserWithEthAccount(
+    new BigNumber(10),
+    new BigNumber(0.1)
+  );
   const account = user.accounts[0];
   const res = await request(hancock)
     .post(`/transactions/${user.attr.id}/eth`)
@@ -92,7 +101,10 @@ test("POST /transaction with unknown sender account", async () => {
 
 test("POST /transaction with insufficient balance", async () => {
   const hancock = createApp();
-  const user = await createUserWithEthAccount(new BigNumber(10));
+  const user = await createUserWithEthAccount(
+    new BigNumber(10),
+    new BigNumber(0.1)
+  );
   const account = user.accounts[0];
 
   const eth = await Asset.fromTicker("eth");
@@ -116,7 +128,10 @@ test("POST /transaction with insufficient balance", async () => {
 
 test("POST /transaction", async () => {
   const hancock = createApp();
-  const user = await createUserWithEthAccount(new BigNumber(10));
+  const user = await createUserWithEthAccount(
+    new BigNumber(10),
+    new BigNumber(1)
+  );
   const account = user.accounts[0];
 
   const eth = await Asset.fromTicker("eth");
@@ -142,7 +157,10 @@ test("POST /transaction", async () => {
 
 test("POST concurrent /transaction calls. Only one should succeed", async () => {
   const hancock = createApp();
-  const user = await createUserWithEthAccount(new BigNumber(10));
+  const user = await createUserWithEthAccount(
+    new BigNumber(10),
+    new BigNumber(0.1)
+  );
   const account = user.accounts[0];
 
   const eth = await Asset.fromTicker("eth");
