@@ -7,6 +7,7 @@ import Web3Session from "src/lib/ethereum/Web3Session";
 import Erc20Session from "src/lib/ethereum/Erc20Session";
 
 import Asset from "../models/Asset";
+import Account from "../models/Account";
 import EthereumTransaction from "../models/EthereumTransaction";
 
 import EthereumTx from "ethereumjs-tx";
@@ -19,8 +20,8 @@ import { NotFoundError } from "../errors";
 export default class TransactionProcessor {
   @handler()
   static async broadcastEthTransaction(transationId: number) {
+    return;
     console.log("sending eth transaction");
-
     const txn: ?EthereumTransaction = await EthereumTransaction.findById(
       transationId
     );
@@ -29,39 +30,36 @@ export default class TransactionProcessor {
       throw new NotFoundError(`transaction not found ${transationId}`);
     }
 
-    if (txn.attr.blockNumber != null) {
-      console.log("transaction already confirmed");
+    await txn.syncWithNetwork();
+    if (txn.confirmed) {
       return;
     }
 
-    return;
-    const fromAddr: ?EthereumAccount = await EthereumAccount.findOne({
-      address: txn.attr.from
-    });
+    const asset: ?Asset = await Asset.findById(txn.attr.assetId);
+    if (asset == null) {
+      throw new NotFoundError(`asset not found ${txn.attr.assetId}`);
+    }
 
-    if (fromAddr == null) {
-      throw `address not found ${txn.attr.from}`;
+    if (!asset.isEth || !asset.isErc20) {
+      throw `not an ethereum asset ${asset.attr.ticker}`;
+    }
+
+    const account = await Account.findByAddress(
+      txn.attr.from,
+      txn.attr.assetId
+    );
+    if (account == null) {
+      throw new NotFoundError(`eth account not found ${txn.attr.from}`);
     }
 
     const web3Session = Web3Session.createSession();
-    const { privateKey } = fromAddr.attr;
-    const { contractAddress } = txn.attr;
-    if (contractAddress != null) {
-      const asset: ?Asset = await Asset.findOne({
-        type: "erc20",
-        contractAddress: contractAddress
-      });
+    if (asset.isErc20) {
+      const { contractAddress, ABI, decimals } = asset.attr;
 
-      if (asset == null || asset.ABI == null) {
-        throw `erc20 asset not found ${contractAddress}`;
-      }
-
-      const {
-        ABI,
-        attr: { decimals }
-      } = asset;
-      if (ABI == null || decimals == null) {
-        throw `Erc20 attributes missing for ${asset.attr.ticker}`;
+      if (contractAddress == null || ABI == null || decimals == null) {
+        throw new NotFoundError(
+          `erc20 attributes missing for ${asset.attr.ticker}`
+        );
       }
 
       const contract = new web3Session.web3.eth.Contract(ABI, contractAddress, {
@@ -78,9 +76,9 @@ export default class TransactionProcessor {
 
       session.transferTo({
         nonce: txn.attr.nonce,
-        gasPrice: txn.gasPriceBN,
+        privateKey: account.attr.privateKey,
+        gasPrice: txn.gasPriceWeiBN,
         toAddress: txn.attr.to,
-        privateKey,
         transferAmount: new BigNumber(txn.attr.value)
       });
     } else {
@@ -90,18 +88,19 @@ export default class TransactionProcessor {
       });
 
       session.transferTo({
-        value: txn.valueBN,
         nonce: txn.attr.nonce,
+        value: txn.valueBN,
         gasLimit: txn.gasLimitBN,
         gasPrice: txn.gasPriceBN,
         toAddress: txn.attr.to,
-        privateKey
+        privateKey: account.attr.privateKey
       });
     }
   }
 
   @handler()
   static async retryEthTransaction(transationId: number) {
+    const eth = await Asset.fromTicker("eth");
     const session = Web3Session.createSession();
     const txn: ?EthereumTransaction = await EthereumTransaction.findById(
       transationId
@@ -111,21 +110,19 @@ export default class TransactionProcessor {
       throw new NotFoundError(`transaction not found ${transationId}`);
     }
 
-    const { hash, from } = txn.attr;
-    const account: ?EthereumAccount = await EthereumAccount.findByAddress(from);
-
+    const account: ?Account = await Account.findByAddress(
+      txn.attr.from,
+      txn.attr.assetId
+    );
     if (account == null) {
-      throw new NotFoundError(`account not found ${txn.attr.from}`);
+      throw new NotFoundError(
+        `${txn.attr.ticker} account not found: ${txn.attr.from}`
+      );
     }
 
-    if (hash != null) {
-      // Check with blockchain to see if transaction got mined.
-      const transaction: ?RawTransaction = await session.getTransaction(hash);
-      if (transaction != null && transaction.blockNumber != null) {
-        console.warn(`transaction already confirmed ${txn.attr.id}`);
-        txn.update({ blockNumber: transaction.blockNumber });
-        return;
-      }
+    await txn.syncWithNetwork();
+    if (txn.confirmed) {
+      return;
     }
 
     if (txn.attr.blockNumber != null) {

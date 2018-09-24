@@ -97,6 +97,8 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
       .comment(`type of transaction`)
       .notNullable();
 
+    table.integer("withdrawalId").nullable();
+
     table
       .text("note")
       .notNullable()
@@ -120,6 +122,11 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
     table.increments("id").primary();
     table.timestamp("createdAt", 3).defaultTo(knex.fn.now(3));
     table.timestamp("updatedAt", 3).defaultTo(knex.fn.now(3));
+
+    table
+      .boolean("isHouse")
+      .notNullable()
+      .defaultTo(false);
   });
 
   await knex.schema.createTable("accounts", table => {

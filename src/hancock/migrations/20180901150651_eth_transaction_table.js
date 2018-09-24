@@ -45,10 +45,11 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
       .notNullable()
       .defaultTo("pending")
       .index();
+
     table
-      .string("ticker", 20)
+      .integer("assetId")
       .index()
-      .nullable();
+      .notNullable();
 
     table.comment(`
       has an entry for every ethereum transaction. if the blockNumber is null,

@@ -39,8 +39,8 @@ test("test isAddress() on a generated account", () => {
 
 test("test gas price estimated", async () => {
   const session = Web3Session.createMainnetSession();
-  const price = await session.getGasPrice();
-  expect(price.toNumber()).toBeGreaterThan(0);
+  const priceWei = await session.getGasPriceWei();
+  expect(priceWei.toNumber()).toBeGreaterThan(0);
 });
 
 test("test getEthBalance() on an invalid address", async () => {

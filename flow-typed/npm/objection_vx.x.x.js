@@ -62,6 +62,8 @@ declare module "objection" {
   }
 
   declare export type knexSnakeCaseMappers = () => Json;
+
+  declare export type transaction = (trx: Knex$Transaction) => void;
 }
 
 /**

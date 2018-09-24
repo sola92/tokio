@@ -5,17 +5,18 @@ import { InvalidStateError } from "src/hancock/errors";
 import type { BaseFields } from "src/lib/BaseModel";
 import type { Knex$Transaction } from "knex";
 
-export type BalanceAction = "withdraw" | "trade" | "deposit";
+export type BalanceAction = "withdraw" | "trade" | "deposit" | "gas";
 export type BalanceEventState = "pending" | "confirmed" | "cancelled";
 export type Fields = BaseFields & {
   userId: number,
   accountId: number,
   assetId: number,
   amount: string,
-  action: string,
+  action: BalanceAction,
   note: string,
   identifier?: string,
-  state: BalanceEventState
+  state: BalanceEventState,
+  withdrawalId?: ?number
 };
 
 export default class BalanceEvent extends BaseModel<Fields> {

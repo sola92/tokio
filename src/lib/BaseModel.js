@@ -12,6 +12,7 @@ type Id = number;
 type QueryBuilder<R, F> = $QueryBuilder<R> & {
   deleteById(id: Id): Promise<>,
   findById(id: Id): Promise<?R>,
+  where(key: $Keys<F>, eq: any): $QueryBuilder<R>,
   patch(updates: $Shape<F>): $QueryBuilder<R>,
   findOne(conditions: $Shape<F>): Promise<?R>,
   patchAndFetchById(id: Id, updates: $Shape<F>): Promise<R>,
@@ -28,6 +29,9 @@ const globals = {};
 
 export default class BaseModel<F: BaseFields> extends Model {
   attr: F;
+  id: number;
+  createdAt: moment;
+  updatedAt: moment;
 
   constructor(...args: Array<any>) {
     super(...args);
@@ -87,6 +91,10 @@ export default class BaseModel<F: BaseFields> extends Model {
   }
 
   static findById(id: Id): Promise<?this> {
+    return this.query().findById(id);
+  }
+
+  static byId(id: Id): Promise<?this> {
     return this.query().findById(id);
   }
 
