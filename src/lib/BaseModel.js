@@ -12,6 +12,8 @@ type Id = number;
 type QueryBuilder<R, F> = $QueryBuilder<R> & {
   deleteById(id: Id): Promise<>,
   findById(id: Id): Promise<?R>,
+  select(columns: string): $QueryBuilder<R>,
+  join(tableName: string, comp1: string, comp2: string): $QueryBuilder<R>,
   where(key: $Keys<F>, eq: any): $QueryBuilder<R>,
   patch(updates: $Shape<F>): $QueryBuilder<R>,
   findOne(conditions: $Shape<F>): Promise<?R>,

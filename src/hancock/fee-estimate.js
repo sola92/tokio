@@ -19,8 +19,8 @@ export default class FeeEstimator {
   }
 
   static async estimateGasUsage(asset: Asset): Promise<BigNumber> {
-    if (!asset.isEth && asset.isErc20) {
-      throw `new asset must be ethereum based for now`;
+    if (!asset.isEth && !asset.isErc20) {
+      throw `asset must be ethereum based for now`;
     }
 
     const latestTxn = await this.getMostRecentTransaction(asset);
