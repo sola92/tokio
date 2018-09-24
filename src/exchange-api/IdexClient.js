@@ -100,7 +100,8 @@ export default class IdexClient {
   ) {
     const orderPrice: OrderPrice = await getOrdersForAmount(
       amount,
-      tokenTicker
+      tokenTicker,
+      "buy"
     );
 
     const expTotalPriceBN = BigNumber(expectedTotalPrice);

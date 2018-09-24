@@ -123,7 +123,11 @@ export async function getOrdersForAmount(
 // Returns amount of ETH required to purchase 'amount' of 'ticker' token.
 // Includes exchange fee.
 export async function getPriceForAmount(ticker: string, amount: number) {
-  const orderPrice: OrderPrice = await getOrdersForAmount(amount, ticker);
+  const orderPrice: OrderPrice = await getOrdersForAmount(
+    amount,
+    ticker,
+    "buy"
+  );
   return orderPrice.totalPrice.multipliedBy(1 + FEE_RATIO);
 }
 
@@ -252,7 +256,7 @@ export async function trade(
       },
       {
         t: "uint256",
-        v: nonce
+        v: nonce + i
       }
     );
     const { v, r, s } = pkey.sign(rawHash);
@@ -260,7 +264,7 @@ export async function trade(
       orderHash: orders[i].orderHash,
       amount: singleTradeFillAmount.toFixed(),
       address: walletAddr,
-      nonce: nonce,
+      nonce: nonce + i,
       v: v,
       r: r,
       s: s

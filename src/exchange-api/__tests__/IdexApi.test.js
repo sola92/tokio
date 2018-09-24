@@ -64,7 +64,7 @@ test("get price for amount that fills multiple asks", async () => {
 test("get price for amount that cannot be filled", async () => {
   axios.post.mockImplementation(() => Promise.resolve(ORDER_BOOK_RESPONSE));
   await expect(getPriceForAmount("LINK", 11)).rejects.toThrowError(
-    "Unable to fill order for token LINK on IDEX. Can only fill 10/11. checkOnly: true"
+    "Unable to fill order for token LINK on IDEX. Can only fill 10/11."
   );
 });
 
