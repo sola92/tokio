@@ -1,4 +1,5 @@
 //@flow
+import web3 from "web3";
 import Axios from "axios";
 import { soliditySha3 } from "web3-utils";
 import {
@@ -22,6 +23,8 @@ type Response = {
 type OrderBook = {
   price: string,
   amount: string,
+  // amountBuy represents amount (in wei/decimals) required to fill the order.
+  amountBuy: string,
   type: OrderType,
   orderHash: string
 };
@@ -33,12 +36,7 @@ export type OrderPrice = {
   orders: Array<OrderBook>
 };
 
-type IDEX_API_ARG = {
-  address?: EthAddress,
-  market?: string
-};
-
-const TO_MARKET_ARG = (ticker: string): IDEX_API_ARG => ({
+const TO_MARKET_ARG = (ticker: string) => ({
   market: "ETH_" + ticker.toUpperCase()
 });
 
@@ -76,7 +74,7 @@ export function getOrderBook(
 // Returns OrderPrice which has the minimum orders to satisfy the desired amount
 // and contains the total price (excluding exchange fees).
 export async function getOrdersForAmount(
-  amount: number,
+  amount: string,
   ticker: string,
   type: OrderType
 ): Promise<OrderPrice> {
@@ -94,8 +92,10 @@ export async function getOrdersForAmount(
     throw new CannotFillOrderError(
       ticker,
       /* exchange */ "IDEX",
-      /* fillableAmount */ BigNumber(amount).minus(remainingAmount),
-      /* requestedAmount */ BigNumber(amount)
+      /* fillableAmount */ BigNumber(amount)
+        .minus(remainingAmount)
+        .toFixed(),
+      /* requestedAmount */ amount
     );
   }
   // sanity check.
@@ -122,7 +122,7 @@ export async function getOrdersForAmount(
 
 // Returns amount of ETH required to purchase 'amount' of 'ticker' token.
 // Includes exchange fee.
-export async function getPriceForAmount(ticker: string, amount: number) {
+export async function getPriceForAmount(ticker: string, amount: string) {
   const orderPrice: OrderPrice = await getOrdersForAmount(
     amount,
     ticker,
@@ -225,22 +225,35 @@ export async function postOrder(
 }
 
 // Fill an order.
+// The amountFill (amountSell) is the amount of tokenBuy to fill for the order.
+// It is NOT the amount of token to receive after filling the order.
 // Returns the response from IDEX.
 // https://github.com/AuroraDAO/idex-api-docs#trade
 export async function trade(
   orders: Array<OrderBook>,
-  amount: string,
+  amountBuy: string,
+  tokenFillDecimals: number,
+  expectedAmountFill: string,
   walletAddr: string,
   nonce: number
 ) {
   const pkey = new EthKey();
   const trades = [];
-  let remainingAmount = BigNumber(amount);
+  const decimalsMultiplier = BigNumber("1" + "0".repeat(tokenFillDecimals));
+  let remainingAmountBuy = BigNumber(amountBuy);
+  let totalAmountFillDecimals = BigNumber(0);
   for (var i = 0; i < orders.length; i++) {
-    const singleTradeFillAmount = BigNumber.minimum(
-      remainingAmount,
+    const singleTradeAmountBuy = BigNumber.minimum(
+      remainingAmountBuy,
       orders[i].amount
     );
+    const singleTradeAmountBuyDecimals = singleTradeAmountBuy.multipliedBy(
+      decimalsMultiplier
+    );
+    const singleTradeAmountFillDecimals = singleTradeAmountBuyDecimals
+      .multipliedBy(orders[i].price)
+      .integerValue(BigNumber.ROUND_DOWN);
+
     const rawHash: string = soliditySha3(
       {
         t: "uint256",
@@ -248,7 +261,7 @@ export async function trade(
       },
       {
         t: "uint256",
-        v: singleTradeFillAmount.toFixed()
+        v: singleTradeAmountFillDecimals.toFixed()
       },
       {
         t: "address",
@@ -262,25 +275,37 @@ export async function trade(
     const { v, r, s } = pkey.sign(rawHash);
     trades.push({
       orderHash: orders[i].orderHash,
-      amount: singleTradeFillAmount.toFixed(),
+      amount: singleTradeAmountFillDecimals.toFixed(),
       address: walletAddr,
       nonce: nonce + i,
       v: v,
       r: r,
       s: s
     });
-    remainingAmount = remainingAmount.minus(singleTradeFillAmount);
+    remainingAmountBuy = remainingAmountBuy.minus(singleTradeAmountBuy);
+    totalAmountFillDecimals = totalAmountFillDecimals.plus(
+      singleTradeAmountFillDecimals
+    );
 
-    if (remainingAmount.isLessThan(0)) {
+    if (remainingAmountBuy.isLessThan(0)) {
       throw new Error(
-        "Unexpected: remainingAmount=" + remainingAmount.toFixed() + " < 0"
+        "Unexpected: remainingAmount=" + remainingAmountBuy.toFixed() + " < 0"
       );
     }
   }
-  try {
-    return await callIdex("trade", trades);
-  } catch (error) {
-    console.log("error calling trade() on IDEX: " + error.response.data.error);
-    throw error;
+  // Sanity check that the amount we are filling with is <= the provided
+  // expected amount.
+  if (
+    totalAmountFillDecimals.isGreaterThan(
+      decimalsMultiplier.multipliedBy(expectedAmountFill)
+    )
+  ) {
+    throw new Error(
+      "Unexpected: totalAmountFillDecimals=" +
+        totalAmountFillDecimals.toFixed() +
+        " > expectedAmountFillDecimals=" +
+        decimalsMultiplier.multipliedBy(expectedAmountFill).toFixed()
+    );
   }
+  return await callIdex("trade", trades);
 }

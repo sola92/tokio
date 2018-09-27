@@ -1,4 +1,5 @@
 import "jest";
+import web3 from "web3";
 import axios from "axios";
 
 import { BigNumber } from "bignumber.js";
@@ -69,17 +70,20 @@ test("get price for amount that cannot be filled", async () => {
 });
 
 // trade() tests
-test("correct args for multi-order trade()", async () => {
+test("correct args for complete multi-order trade()", async () => {
   const spy = jest.spyOn(axios, "post");
   await trade(
     ORDER_BOOK_RESPONSE.data.asks,
-    /* amount */ 10,
+    /* amountBuy */ "10",
+    /* tokenFillPrecision */ 18,
+    /* expectedAmountFill */ "1.7",
     /* walletAddr */ "0x1234500000000000000000000000000000000000",
     /* nonce */ 0
   );
   const expectedTrade1 = {
     orderHash: "0xb7f696c344e6573c2be6e5a25b0eb7b1f510f490",
-    amount: "3",
+    // amount is the wei price, which is ask.price * ask.amount
+    amount: web3.utils.toWei("0.3"),
     address: "0x1234500000000000000000000000000000000000",
     nonce: 0,
     v: expect.any(Number),
@@ -88,7 +92,8 @@ test("correct args for multi-order trade()", async () => {
   };
   const expectedTrade2 = {
     orderHash: "0xc7f696c344e6573c2be6e5a25b0eb7b1f510f491",
-    amount: "7",
+    // amount is the wei price, which is ask.price * ask.amount
+    amount: web3.utils.toWei("1.4"),
     address: "0x1234500000000000000000000000000000000000",
     nonce: 1,
     v: expect.any(Number),
@@ -106,13 +111,16 @@ test("correct args for partial multi-order trade()", async () => {
   const spy = jest.spyOn(axios, "post");
   await trade(
     ORDER_BOOK_RESPONSE.data.asks,
-    /* amount */ 8,
+    /* amountBuy */ "8",
+    /* tokenFillPrecision */ 18,
+    /* expectedAmountFill */ "1.3",
     /* walletAddr */ "0x1234500000000000000000000000000000000000",
     /* nonce */ 0
   );
   const expectedTrade1 = expect.objectContaining({
     orderHash: "0xb7f696c344e6573c2be6e5a25b0eb7b1f510f490",
-    amount: "3",
+    // amount is the wei price, which is ask.price * ask.amount
+    amount: web3.utils.toWei("0.3"),
     address: "0x1234500000000000000000000000000000000000",
     nonce: 0,
     v: expect.any(Number),
@@ -121,7 +129,8 @@ test("correct args for partial multi-order trade()", async () => {
   });
   const expectedTrade2 = expect.objectContaining({
     orderHash: "0xc7f696c344e6573c2be6e5a25b0eb7b1f510f491",
-    amount: "5",
+    // amount is the wei price, which is ask.price * ask.amount
+    amount: web3.utils.toWei("1.0"),
     address: "0x1234500000000000000000000000000000000000",
     nonce: 1,
     v: expect.any(Number),

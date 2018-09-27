@@ -1,5 +1,5 @@
 import IdexClient from "./IdexClient";
-import { getAsksOrderBook } from "./IdexApi";
+import { getOrdersForAmount, getOrderBook, getOpenOrders } from "./IdexApi";
 const util = require("util");
 
 async function postABuyOrder() {
@@ -14,10 +14,9 @@ async function postABuyOrder() {
 //postABuyOrder();
 
 async function printLinkAsks() {
-  let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
   try {
-    let b = await getAsksOrderBook("LINK");
-    console.log(b.data);
+    let b = await getOrderBook("LINK", "buy");
+    console.log(JSON.stringify(b));
   } catch (error) {
     //console.log("error: " + error.response.data.error);
     console.log("error: " + util.inspect(error));
@@ -25,10 +24,23 @@ async function printLinkAsks() {
 }
 //printLinkAsks();
 
+async function printOpenOrders() {
+  let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
+  try {
+    //  let b = await getOrdersForAmount(10, "LINK", "buy");
+    let b = await getOrderBook("LINK", "buy");
+    console.log(JSON.stringify(b));
+  } catch (error) {
+    //console.log("error: " + error.response.data.error);
+    console.log("error: " + util.inspect(error));
+  }
+}
+//printOpenOrders();
+
 async function buy1Link() {
   let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
   try {
-    let b = await a.buyToken("LINK", 1, "0.00000029", "0.00000029");
+    let b = await a.buyToken("LINK", 1000, "0.00000029", "0.00000029");
     console.log(b.data);
   } catch (error) {
     //console.log("error: " + error.response.data.error);
@@ -36,3 +48,15 @@ async function buy1Link() {
   }
 }
 buy1Link();
+
+async function withdrawEth() {
+  let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
+  try {
+    let b = await a.withdrawToken("ETH", "0.1");
+    console.log(b.data);
+  } catch (error) {
+    //console.log("error: " + error.response.data.error);
+    console.log("error withdrawing: " + util.inspect(error));
+  }
+}
+//withdrawEth();

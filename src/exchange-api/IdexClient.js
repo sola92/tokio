@@ -1,11 +1,14 @@
 //@flow
+import web3 from "web3";
+import fs from "fs";
 import {
   getOrdersForAmount,
   getCurrencies,
   getIdexContractAddress,
   getNextNonce,
   postOrder,
-  trade
+  trade,
+  withdraw
 } from "./IdexApi";
 import { TotalPriceIncreasedError } from "./errors";
 import { BigNumber } from "bignumber.js";
@@ -13,6 +16,7 @@ import { BigNumber } from "bignumber.js";
 import type { OrderPrice } from "./IdexApi";
 
 const ETH_DECIMALS_MULTIPLIER = "1000000000000000000";
+const ETH_PRECISION = 18;
 const ETH_TOKEN_ADDRESS: EthAddress =
   "0x0000000000000000000000000000000000000000";
 const UNINITIALIZED_NONCE = -1;
@@ -87,14 +91,14 @@ export default class IdexClient {
       nonce,
       this.ethWalletAddress
     );
-    incrementNonce();
+    this.incrementNonce();
     return postOrderResponse;
   }
 
   // Buying a token by filling buy orders (sell ETH)
   async buyToken(
     tokenTicker: string,
-    amount: number,
+    amount: string,
     expectedTotalPrice: string,
     priceTolerance: number
   ) {
@@ -104,34 +108,35 @@ export default class IdexClient {
       "buy"
     );
 
-    const expTotalPriceBN = BigNumber(expectedTotalPrice);
-    const actualPriceBN = BigNumber(orderPrice.totalPrice);
-    if (actualPriceBN > expTotalPriceBN) {
-      const priceError = expTotalPriceBN
+    const expTotalPrice = BigNumber(expectedTotalPrice);
+    const actualPrice = BigNumber(orderPrice.totalPrice);
+    if (actualPrice > expTotalPrice) {
+      const priceError = expTotalPrice
         .minus(expectedTotalPrice)
-        .dividedBy(expTotalPriceBN);
+        .dividedBy(expTotalPrice);
       if (priceError.isGreaterThan(priceTolerance)) {
         throw new TotalPriceIncreasedError(
           tokenTicker,
           "IDEX",
           amount,
-          expTotalPriceBN,
-          actualPriceBN,
+          expTotalPrice.toFixed(),
+          actualPrice.toFixed(),
           priceTolerance
         );
       }
     }
-
     const nonce = await this.getNonce();
 
     // Call IdexAPI to post the Order
     const buyTokenResponse = await trade(
       orderPrice.orders,
-      amount.toFixed(),
+      /* amountBuy */ amount,
+      /* tokenFillPrecision */ ETH_PRECISION,
+      /* amountFill */ actualPrice,
       this.ethWalletAddress,
       nonce
     );
-    incrementNonce();
+    this.incrementNonce();
     return buyTokenResponse;
   }
 }
