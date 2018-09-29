@@ -13,7 +13,7 @@ import {
 import { TotalPriceIncreasedError } from "./errors";
 import { BigNumber } from "bignumber.js";
 
-import type { OrderPrice } from "./IdexApi";
+import type { OrderPrice, CurrencyInfo } from "./IdexApi";
 
 const ETH_DECIMALS_MULTIPLIER = "1000000000000000000";
 const ETH_PRECISION = 18;
@@ -23,7 +23,7 @@ const UNINITIALIZED_NONCE = -1;
 
 // Dictionary of all tokens on IDEX. Retrieved from IDEX.
 let CURRENCIES = {};
-async function getCurrencyInfo(ticker: string) {
+async function getCurrencyInfo(ticker: string): Promise<CurrencyInfo> {
   let currencyInfo = CURRENCIES[ticker];
   if (currencyInfo == null) {
     CURRENCIES = await getCurrencies();
@@ -62,6 +62,18 @@ export default class IdexClient {
   // with the IDEX contract.
   incrementNonce() {
     this.nonce += 1;
+  }
+
+  async withdrawToken(tokenTicker: string, amount: string) {
+    const withdrawResponse = await withdraw(
+      IDEX_CONTRACT_ADDRESS,
+      amount,
+      await getCurrencyInfo(tokenTicker),
+      await this.getNonce(),
+      this.ethWalletAddress
+    );
+    this.incrementNonce();
+    return withdrawResponse;
   }
 
   // Posting an order to sell ETH to buy a token.
@@ -110,7 +122,7 @@ export default class IdexClient {
 
     const expTotalPrice = BigNumber(expectedTotalPrice);
     const actualPrice = BigNumber(orderPrice.totalPrice);
-    if (actualPrice > expTotalPrice) {
+    if (actualPrice.isGreaterThan(expTotalPrice)) {
       const priceError = expTotalPrice
         .minus(expectedTotalPrice)
         .dividedBy(expTotalPrice);
@@ -132,7 +144,7 @@ export default class IdexClient {
       orderPrice.orders,
       /* amountBuy */ amount,
       /* tokenFillPrecision */ ETH_PRECISION,
-      /* amountFill */ actualPrice,
+      /* amountFill */ actualPrice.toFixed(),
       this.ethWalletAddress,
       nonce
     );

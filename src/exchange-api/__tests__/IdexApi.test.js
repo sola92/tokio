@@ -3,11 +3,20 @@ import web3 from "web3";
 import axios from "axios";
 
 import { BigNumber } from "bignumber.js";
-import { getPriceForAmount, trade } from "../IdexApi";
+import { getPriceForAmount, trade, withdraw } from "../IdexApi";
 import EthKey from "../../pkey-service/EthKey";
 import CannotFillOrderError from "../errors";
 
 jest.mock("axios");
+
+const IDEX_CONTRACT_ADDRESS = "0x1234567890123456789012345678901234567890";
+const WALLET_ADDRESS = "0x1234500000000000000000000000000000000000";
+
+const TOKEN_CURRENCY_INFO = {
+  name: "LINK",
+  decimals: "18",
+  address: "0x9934567890123456789012345678901234567899"
+};
 
 const ORDER_BOOK_RESPONSE = {
   data: {
@@ -77,14 +86,14 @@ test("correct args for complete multi-order trade()", async () => {
     /* amountBuy */ "10",
     /* tokenFillPrecision */ 18,
     /* expectedAmountFill */ "1.7",
-    /* walletAddr */ "0x1234500000000000000000000000000000000000",
+    /* walletAddr */ WALLET_ADDRESS,
     /* nonce */ 0
   );
   const expectedTrade1 = {
     orderHash: "0xb7f696c344e6573c2be6e5a25b0eb7b1f510f490",
     // amount is the wei price, which is ask.price * ask.amount
     amount: web3.utils.toWei("0.3"),
-    address: "0x1234500000000000000000000000000000000000",
+    address: WALLET_ADDRESS,
     nonce: 0,
     v: expect.any(Number),
     r: expect.stringMatching("0x*"),
@@ -94,7 +103,7 @@ test("correct args for complete multi-order trade()", async () => {
     orderHash: "0xc7f696c344e6573c2be6e5a25b0eb7b1f510f491",
     // amount is the wei price, which is ask.price * ask.amount
     amount: web3.utils.toWei("1.4"),
-    address: "0x1234500000000000000000000000000000000000",
+    address: WALLET_ADDRESS,
     nonce: 1,
     v: expect.any(Number),
     r: expect.stringMatching("0x*"),
@@ -114,14 +123,14 @@ test("correct args for partial multi-order trade()", async () => {
     /* amountBuy */ "8",
     /* tokenFillPrecision */ 18,
     /* expectedAmountFill */ "1.3",
-    /* walletAddr */ "0x1234500000000000000000000000000000000000",
+    /* walletAddr */ WALLET_ADDRESS,
     /* nonce */ 0
   );
   const expectedTrade1 = expect.objectContaining({
     orderHash: "0xb7f696c344e6573c2be6e5a25b0eb7b1f510f490",
     // amount is the wei price, which is ask.price * ask.amount
     amount: web3.utils.toWei("0.3"),
-    address: "0x1234500000000000000000000000000000000000",
+    address: WALLET_ADDRESS,
     nonce: 0,
     v: expect.any(Number),
     r: expect.stringMatching("0x*"),
@@ -131,7 +140,7 @@ test("correct args for partial multi-order trade()", async () => {
     orderHash: "0xc7f696c344e6573c2be6e5a25b0eb7b1f510f491",
     // amount is the wei price, which is ask.price * ask.amount
     amount: web3.utils.toWei("1.0"),
-    address: "0x1234500000000000000000000000000000000000",
+    address: WALLET_ADDRESS,
     nonce: 1,
     v: expect.any(Number),
     r: expect.stringMatching("0x*"),
@@ -140,6 +149,34 @@ test("correct args for partial multi-order trade()", async () => {
   expect(spy).toHaveBeenCalledWith(
     "https://api.idex.market/trade",
     expect.arrayContaining([expectedTrade1, expectedTrade2])
+  );
+  spy.mockRestore();
+});
+
+test("correct args for withdraw()", async () => {
+  const spy = jest.spyOn(axios, "post");
+
+  await withdraw(
+    IDEX_CONTRACT_ADDRESS,
+    /* amount */ "0.2",
+    TOKEN_CURRENCY_INFO,
+    /* nonce */ 0,
+    WALLET_ADDRESS
+  );
+
+  const expected = expect.objectContaining({
+    // Eth to Wei and the provided token have same precision.
+    amount: web3.utils.toWei("0.2"),
+    token: TOKEN_CURRENCY_INFO.address,
+    address: WALLET_ADDRESS,
+    nonce: 0,
+    v: expect.any(Number),
+    r: expect.stringMatching("0x*"),
+    s: expect.stringMatching("0x*")
+  });
+  expect(spy).toHaveBeenCalledWith(
+    "https://api.idex.market/withdraw",
+    expected
   );
   spy.mockRestore();
 });

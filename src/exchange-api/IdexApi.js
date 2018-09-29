@@ -1,4 +1,5 @@
 //@flow
+const util = require("util");
 import web3 from "web3";
 import Axios from "axios";
 import { soliditySha3 } from "web3-utils";
@@ -34,6 +35,12 @@ export type OrderPrice = {
   totalPrice: BigNumber,
   type: OrderType,
   orders: Array<OrderBook>
+};
+
+export type CurrencyInfo = {
+  name: string,
+  decimals: number,
+  address: EthAddress
 };
 
 const TO_MARKET_ARG = (ticker: string) => ({
@@ -156,6 +163,60 @@ export function getIdexContractAddress() {
   return callIdex("returnContractAddress", /* args */ {}).then(
     response => response.data.address
   );
+}
+
+// Withdraw token from the IDEX contract into wallet.
+// IDEX enforces a minimum withdrawal amount of 0.04 ETH.
+// Returns the response from IDEX.
+// https://github.com/AuroraDAO/idex-api-docs#withdraw
+export async function withdraw(
+  contractAddr: string,
+  amount: string,
+  tokenCurrencyInfo: CurrencyInfo,
+  nonce: number,
+  walletAddr: string
+) {
+  const amountDecimals = BigNumber(amount)
+    .multipliedBy("1" + "0".repeat(tokenCurrencyInfo.decimals))
+    .toFixed();
+  // Hash and then sign values
+  const rawHash: string = soliditySha3(
+    {
+      t: "address",
+      v: contractAddr
+    },
+    {
+      t: "address",
+      v: tokenCurrencyInfo.address
+    },
+    {
+      t: "uint256",
+      v: amountDecimals
+    },
+    {
+      t: "address",
+      v: walletAddr
+    },
+    {
+      t: "uint256",
+      v: nonce
+    }
+  );
+  const { v, r, s } = new EthKey().sign(rawHash);
+  try {
+    // the object isn't being passed properly.
+    return await callIdex("withdraw", {
+      amount: amountDecimals,
+      token: tokenCurrencyInfo.address,
+      address: walletAddr,
+      nonce: nonce,
+      v: v,
+      r: r,
+      s: s
+    });
+  } catch (error) {
+    console.log("error withdrawing form IDEX: " + util.inspect(error));
+  }
 }
 
 // Post an order.
