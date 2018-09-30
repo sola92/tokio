@@ -5,13 +5,12 @@
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
-    "@babel/core": "^7.0.0",
-    "@babel/register": "^7.0.0",
     "add-variable-declarations": "^3.1.2",
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.3",
     "babel-eslint": "^8.1.2",
-    "babel-loader": "^8.0.0",
+    "babel-loader": "^7.1.2",
+    "babel-plugin-module-resolver": "^3.1.1",
     "babel-plugin-syntax-class-properties": "^6.13.0",
     "babel-plugin-transform-class-properties": "^6.24.1",
     "babel-plugin-transform-decorators": "^6.24.1",
@@ -19,7 +18,7 @@
     "babel-plugin-transform-do-expressions": "^6.22.0",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-plugin-transform-remove-strict-mode": "0.0.2",
-    "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-flow": "^6.23.0",
     "babel-preset-mobx": "^1.0.2",
@@ -27,6 +26,9 @@
     "babel-preset-stage-0": "^6.24.1",
     "babel-preset-stage-1": "^6.24.1",
     "babel-register": "^6.26.0",
+    "clean-webpack-plugin": "^0.1.19",
+    "concurrently": "^4.0.0",
+    "css-loader": "^0.28.11",
     "dotenv": "^6.0.0",
     "eslint": "^4.19.1",
     "eslint-plugin-import": "^2.8.0",
@@ -35,8 +37,16 @@
     "flow-bin": "^0.79.1",
     "flow-remove-types": "^1.2.3",
     "flow-typed": "^2.5.1",
-    "jest": "^23.6.0",
-    "jest-cli": "^23.5.0"
+    "html-webpack-plugin": "^3.2.0",
+    "jest": "^23.5.0",
+    "jest-cli": "^23.5.0",
+    "nodemon": "^1.17.3",
+    "style-loader": "^0.23.0",
+    "supertest": "^3.1.0",
+    "url-loader": "^1.1.1",
+    "webpack": "^4.5.0",
+    "webpack-cli": "^3.0.8",
+    "webpack-dev-server": "^3.1.3"
   },
   "eslintConfig": {
     "env": {
@@ -71,7 +81,15 @@
       "describe": true,
       "test": true,
       "expect": true,
-      "EthAddress": true
+      "EthAddress": true,
+      "Json": true,
+      "exports": true,
+      "$Shape": true,
+      "beforeEach": true,
+      "afterEach": true,
+      "afterAll": true,
+      "beforeAll": true,
+      "IntervalID": true
     },
     "rules": {
       "indent": 0,
@@ -119,16 +137,29 @@
     }
   },
   "dependencies": {
+    "aws-sdk": "^2.307.0",
     "axios": "^0.18.0",
     "babel-plugin-transform-async-to-generator": "^6.24.1",
     "babel-plugin-transform-flow-strip-types": "^6.22.0",
     "babel-plugin-transform-runtime": "^6.23.0",
     "bignumber.js": "^7.2.1",
     "bn.js": "^4.11.8",
+    "body-parser": "^1.18.3",
     "commander": "^2.17.1",
     "ethereumjs-tx": "^1.3.7",
     "ethereumjs-util": "^5.2.0",
+    "express": "^4.16.3",
+    "knex": "^0.15.2",
     "lodash": "^4.17.10",
+    "mobx": "^4.0.0",
+    "mobx-react": "^5.2.3",
+    "mobx-react-router": "^4.0.4",
+    "moment": "^2.22.2",
+    "mysql2": "^1.6.1",
+    "objection": "^1.2.6",
+    "react": "^16.3.1",
+    "react-dom": "^16.3.1",
+    "uuid": "^3.3.2",
     "web3": "^1.0.0-beta.35",
     "web3-utils": "^1.0.0-beta.36"
   },
@@ -137,11 +168,18 @@
     "coverageReporters": [
       "json",
       "html"
-    ]
+    ],
+    "moduleNameMapper": {
+      "src": "./src"
+    }
   },
+  "private": true,
+  "workspaces": [
+    "src/*"
+  ],
   "scripts": {
-    "test": "jest --coverage",
-    "build": "babel src -d lib",
-    "flow": "flow"
+    "flow": "flow",
+    "test": "babel-node src/test/beforeAll.js && jest --coverage",
+    "build": "babel src -d lib"
   }
 }

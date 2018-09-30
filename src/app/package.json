@@ -1,0 +1,13 @@
+{
+  "name": "tokio-app",
+  "version": "1.0.0",
+  "description": "make it easier to buy digital assets",
+  "main": "server.js",
+  "scripts": {
+    "start": "babel-node server.js",
+    "build": "${TOKIO_ROOT}/node_modules/.bin/webpack --mode production",
+    "client": "${TOKIO_ROOT}/node_modules/.bin/webpack-dev-server --mode development --devtool inline-source-map --hot",
+    "server": "${TOKIO_ROOT}/node_modules/.bin/nodemon server.js --exec tokionode",
+    "dev": "${TOKIO_ROOT}/node_modules/.bin/concurrently \"yarn server\" \"yarn client\""
+  }
+}

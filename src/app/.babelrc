@@ -1,0 +1,29 @@
+{
+  "plugins": [
+    "transform-decorators-legacy",
+    [
+      "module-resolver",
+      {
+        "root": [".."],
+        "alias": {
+          "src": ".."
+        }
+      }
+    ],
+    "transform-flow-strip-types"
+  ],
+  "presets": [
+    "flow",
+    [
+      "env",
+      {
+        "targets": {
+          "node": "current"
+        }
+      }
+    ],
+    "babel-preset-react",
+    "stage-1",
+    "stage-0"
+  ]
+}
