@@ -59,4 +59,15 @@ async function withdrawEth() {
     console.log("error withdrawing: " + util.inspect(error));
   }
 }
-withdrawEth();
+//withdrawEth();
+
+async function depositEth() {
+  let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
+  try {
+    let b = await a.depositToken("0.04");
+    console.log("deposit Response: " + util.inspect(b));
+  } catch (error) {
+    console.log("error depositing: " + util.inspect(error));
+  }
+}
+depositEth();

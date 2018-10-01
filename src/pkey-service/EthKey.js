@@ -1,6 +1,7 @@
 //@flow
 import fs from "fs";
 import { soliditySha3 } from "web3-utils";
+import EthereumTx from "ethereumjs-tx";
 import {
   hashPersonalMessage,
   bufferToHex,
@@ -34,9 +35,8 @@ export default class EthKey {
     );
     return signature;
   }
-}
 
-function demo() {
-  let ethKey = new EthKey();
+  signTransaction(tx: EthereumTx) {
+    tx.sign(this.pkey);
+  }
 }
-demo();
