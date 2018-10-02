@@ -89,7 +89,7 @@ export default class Web3Session {
 
   async getGasPriceWei(unit: EthUnit = "wei"): Promise<BigNumber> {
     const price = await this.web3.eth.getGasPrice();
-    return new BigNumber(this.fromWei(price, unit));
+    return new BigNumber(price);
   }
 
   async getEthBalance(address: EthAddress): Promise<?BigNumber> {

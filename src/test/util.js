@@ -16,12 +16,13 @@ import User from "src/hancock/models/User";
 import Asset from "src/hancock/models/Asset";
 import Account from "src/hancock/models/Account";
 import BalanceEvent from "src/hancock/models/BalanceEvent";
-import EthSession from "src/lib/ethereum/EthSession";
 import Web3Session from "src/lib/ethereum/Web3Session";
 
 import { apiErrorMiddleware } from "src/lib/express";
 
 import uuidv1 from "uuid/v1";
+
+import type { Fields as UserFields } from "src/hancock/models/User";
 
 export const clearTable = async (modelName: string) => {
   const knex: Knex<*> = BaseModel.knex();
@@ -61,7 +62,7 @@ export const createTestAssets = async () => {
     name: "Ether",
     type: "coin",
     ticker: "ETH",
-    decimals: EthSession.DECIMALS
+    decimals: Web3Session.ETH_DECIMALS
   });
 };
 
@@ -113,10 +114,13 @@ export const depositToAccount = async (
   });
 };
 
-export const createUserWithEthAccount = async (
+export const createUserWithRandomEthAccount = async ({
+  balance,
+  houseBalance
+}: {
   balance: BigNumber,
   houseBalance: BigNumber
-): Promise<User> => {
+}): Promise<User> => {
   const user = await User.insert({});
   const eth = await Asset.fromTicker("eth");
   const account = await createRandomEthAccount();
@@ -130,4 +134,68 @@ export const createUserWithEthAccount = async (
 
 export const createHouseUser = async (): Promise<User> => {
   return User.insert({ isHouse: true });
+};
+
+class UserMockBuilder {
+  user: User;
+  operations: Array<() => Promise<any>> = [];
+
+  constructor(args: $Shape<UserFields>) {
+    this.operations.push(async () => {
+      this.user = await User.insert(args);
+    });
+  }
+
+  withRandomEthAccount({
+    balance,
+    houseBalance
+  }: {
+    balance: BigNumber,
+    houseBalance: BigNumber
+  }): this {
+    this.operations.push(async () => {
+      const eth = await Asset.fromTicker("eth");
+      const account = await createRandomEthAccount();
+      await this.user.addAccount(account);
+      await depositToAccount(account, this.user.id, eth.id, balance);
+
+      const house = await User.getHouseUser();
+      await depositToAccount(account, house.id, eth.id, houseBalance);
+    });
+
+    return this;
+  }
+
+  withEthAccountBalance({
+    address,
+    balance
+  }: {
+    address: EthAddress,
+    balance: BigNumber
+  }): this {
+    this.operations.push(async () => {
+      const { user } = this;
+      const eth = await Asset.fromTicker("eth");
+      const account = await Account.findByAddress(address, eth.id);
+      if (account == null) {
+        return;
+      }
+
+      await user.addAccount(account);
+      await depositToAccount(account, user.id, eth.id, balance);
+    });
+
+    return this;
+  }
+
+  async build(): Promise<User> {
+    for (const operation of this.operations) {
+      await operation();
+    }
+    return this.user;
+  }
+}
+
+export const createUser = (args: $Shape<UserFields>): UserMockBuilder => {
+  return new UserMockBuilder(args);
 };

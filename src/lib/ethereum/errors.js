@@ -32,3 +32,7 @@ export class InsufficientBalanceError extends Error {
     this.required = required;
   }
 }
+
+export class MissingConfigError extends Error {}
+export class UnsignedTransactionError extends Error {}
+export class DuplicateOperationError extends Error {}

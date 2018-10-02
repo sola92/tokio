@@ -162,9 +162,11 @@ router.post(
         );
 
         res.json(ethTxn.toJSON());
-        await TransactionProcessor.broadcastEthTransaction.publish(
-          ethTxn.attr.id
-        );
+        if (process.env.NODE_ENV === "production") {
+          await TransactionProcessor.broadcastEthTransaction.publish(
+            ethTxn.attr.id
+          );
+        }
       });
     } catch (e) {
       if (e instanceof LockError) {
