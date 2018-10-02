@@ -121,12 +121,18 @@ export default class Erc20Session {
   }
 
   toContractPrecision(value: BigNumber | number | string): BigNumber {
-    const { decimals } = this;
-    return new BigNumber(value).times(new BigNumber(10).pow(decimals));
+    return convertToContractPrecision(value, this.decimals);
   }
 
   fromContractPrecision(value: BigNumber | number | string): BigNumber {
     const { decimals } = this;
     return new BigNumber(value).times(new BigNumber(10).pow(-1 * decimals));
   }
+}
+
+export function convertToContractPrecision(
+  value: BigNumber | number | string,
+  decimals: number
+): BigNumber {
+  return new BigNumber(value).times(new BigNumber(10).pow(decimals));
 }

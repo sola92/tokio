@@ -17,7 +17,8 @@ import {
 } from "./IdexApi";
 import { TotalPriceIncreasedError } from "./errors";
 import { BigNumber } from "bignumber.js";
-import { TransactionReceipt } from "../lib/ethereum/typedef";
+import { convertToContractPrecision } from "../lib/ethereum/Erc20Session.js";
+import type { TransactionReceipt } from "../lib/ethereum/typedef";
 
 import type { OrderPrice, CurrencyInfo } from "./IdexApi";
 
@@ -89,7 +90,7 @@ async function getIdexDepositAbi() {
 let IDEX_DEPOSIT_TOKEN_ABI;
 async function getIdexDepositTokenAbi() {
   if (!IDEX_DEPOSIT_TOKEN_ABI) {
-    IDEX_DEPOSIT_TOKEN = (await getIdexContractInstance()).methods
+    IDEX_DEPOSIT_TOKEN_ABI = (await getIdexContractInstance()).methods
       .depositToken()
       .encodeABI();
   }
@@ -178,8 +179,9 @@ export default class IdexClient {
 
     // Convert the amount of token to sell to its decimals
     const buyTokenCurrencyInfo = await getCurrencyInfo(tokenTicker);
-    const buyAmountDecimals = buyAmount.multipliedBy(
-      "1" + "0".repeat(buyTokenCurrencyInfo.decimals)
+    const buyAmountDecimals = convertToContractPrecision(
+      buyAmount,
+      buyTokenCurrencyInfo.decimals
     );
 
     const nonce = await this.getNonce();

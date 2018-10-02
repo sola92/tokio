@@ -11,6 +11,7 @@ import {
 } from "ethereumjs-util";
 import { mapValues } from "lodash";
 import { BigNumber } from "bignumber.js";
+import { convertToContractPrecision } from "../lib/ethereum/Erc20Session.js";
 
 import EthKey from "../pkey-service/EthKey";
 import { CannotFillOrderError } from "./errors";
@@ -176,9 +177,10 @@ export async function withdraw(
   nonce: number,
   walletAddr: string
 ) {
-  const amountDecimals = BigNumber(amount)
-    .multipliedBy("1" + "0".repeat(tokenCurrencyInfo.decimals))
-    .toFixed();
+  const amountDecimals = convertToContractPrecision(
+    amount,
+    tokenCurrencyInfo.decimals
+  ).toFixed();
   // Hash and then sign values
   const rawHash: string = soliditySha3(
     {

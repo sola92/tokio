@@ -55,7 +55,6 @@ async function withdrawEth() {
     let b = await a.withdrawToken("ETH", "0.04");
     console.log("withdraw Response: " + b.data);
   } catch (error) {
-    //console.log("error: " + error.response.data.error);
     console.log("error withdrawing: " + util.inspect(error));
   }
 }

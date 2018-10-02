@@ -16,6 +16,11 @@ type Signature = {
   s: /* hex string */ string
 };
 
+/*
+* Class that signs stuff.
+* Eventually, this should be something that interfaces with an external service to sign data and txs.
+* Currently reads from local file to get the private key.
+*/
 export default class EthKey {
   pkey: Buffer;
 
