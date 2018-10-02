@@ -160,6 +160,32 @@ test("correct args for partial multi-order trade()", async () => {
   spy.mockRestore();
 });
 
+test("trade() throws error when actual tokenFill is greater than expected.", async () => {
+  await expect(
+    trade(
+      ORDER_BOOK_RESPONSE.data.asks,
+      /* amountBuy */ "8",
+      /* tokenFillPrecision */ 18,
+      /* expectedAmountFill */ "1.0",
+      /* walletAddr */ WALLET_ADDRESS,
+      /* nonce */ 0
+    )
+  ).rejects.toThrowError();
+});
+
+test("trade() throws no error when actual tokenFill is less than expected.", async () => {
+  await expect(
+    trade(
+      ORDER_BOOK_RESPONSE.data.asks,
+      /* amountBuy */ "8",
+      /* tokenFillPrecision */ 18,
+      /* expectedAmountFill */ "1.0",
+      /* walletAddr */ WALLET_ADDRESS,
+      /* nonce */ 0
+    )
+  );
+});
+
 test("correct args for withdraw()", async () => {
   const spy = jest.spyOn(axios, "post");
 
