@@ -8,7 +8,7 @@ import { BigNumber } from "bignumber.js";
 import Web3Session from "./Web3Session";
 import {
   InvalidAddressError,
-  DuplicateSendError,
+  DuplicateOperationError,
   UnsignedTransactionError,
   InsufficientBalanceError,
   MissingConfigError
@@ -83,7 +83,7 @@ export default class Erc20TransferBuilder {
     } = this.validateConfiguration();
 
     if (this.transaction != null) {
-      throw ``;
+      throw new DuplicateOperationError(`transaction has already been built`);
     }
 
     if (!session.isAddress(toAddress)) {
@@ -117,7 +117,7 @@ export default class Erc20TransferBuilder {
     }
 
     if (txSent) {
-      throw new DuplicateSendError(`Transaction has already been sent`);
+      throw new DuplicateOperationError(`Transaction has already been sent`);
     }
 
     const receipt = await session.sendSignedTransaction(transaction);

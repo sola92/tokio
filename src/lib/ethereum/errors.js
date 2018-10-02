@@ -35,4 +35,4 @@ export class InsufficientBalanceError extends Error {
 
 export class MissingConfigError extends Error {}
 export class UnsignedTransactionError extends Error {}
-export class DuplicateSendError extends Error {}
+export class DuplicateOperationError extends Error {}
