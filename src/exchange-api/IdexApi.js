@@ -11,7 +11,7 @@ import {
 } from "ethereumjs-util";
 import { mapValues } from "lodash";
 import { BigNumber } from "bignumber.js";
-import { convertToContractPrecision } from "../lib/ethereum/Erc20Session.js";
+import { toContractPrecision } from "../lib/ethereum/ethutil";
 
 import EthKey from "../pkey-service/EthKey";
 import { CannotFillOrderError } from "./errors";
@@ -137,7 +137,6 @@ export async function getPriceForAmount(
     ticker,
     orderType
   );
-  console.log("orders: " + JSON.stringify(orderPrice.orders));
   return orderPrice.totalPrice.multipliedBy(1 + FEE_RATIO);
 }
 
@@ -179,7 +178,7 @@ export async function withdraw(
   nonce: number,
   walletAddr: string
 ) {
-  const amountDecimals = convertToContractPrecision(
+  const amountDecimals = toContractPrecision(
     amount,
     tokenCurrencyInfo.decimals
   ).toFixed();

@@ -17,7 +17,7 @@ import {
 } from "./IdexApi";
 import { TotalPriceIncreasedError } from "./errors";
 import { BigNumber } from "bignumber.js";
-import { convertToContractPrecision } from "../lib/ethereum/Erc20Session.js";
+import { toContractPrecision } from "../lib/ethereum/ethutil";
 import type { TransactionReceipt } from "../lib/ethereum/typedef";
 
 import type { OrderPrice, CurrencyInfo } from "./IdexApi";
@@ -179,7 +179,7 @@ export default class IdexClient {
 
     // Convert the amount of token to sell to its decimals
     const buyTokenCurrencyInfo = await getCurrencyInfo(tokenTicker);
-    const buyAmountDecimals = convertToContractPrecision(
+    const buyAmountDecimals = toContractPrecision(
       buyAmount,
       buyTokenCurrencyInfo.decimals
     );
