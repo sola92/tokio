@@ -1,18 +1,13 @@
 // @flow
-import { BigNumber } from "bignumber.js";
 import { handler, processor } from "src/lib/processing";
 
-import EthSession from "src/lib/ethereum/EthSession";
 import Web3Session from "src/lib/ethereum/Web3Session";
-import Erc20Session from "src/lib/ethereum/Erc20Session";
+import EthTransferBuilder from "src/lib/ethereum/EthTransferBuilder";
+import Erc20TransferBuilder from "src/lib/ethereum/Erc20TransferBuilder";
 
 import Asset from "../models/Asset";
 import Account from "../models/Account";
 import EthereumTransaction from "../models/EthereumTransaction";
-
-import EthereumTx from "ethereumjs-tx";
-
-import type { RawTransaction } from "src/lib/ethereum/typedef";
 
 import { NotFoundError } from "../errors";
 
@@ -20,7 +15,6 @@ import { NotFoundError } from "../errors";
 export default class TransactionProcessor {
   @handler()
   static async broadcastEthTransaction(transationId: number) {
-    return;
     console.log("sending eth transaction");
     const txn: ?EthereumTransaction = await EthereumTransaction.findById(
       transationId
@@ -52,6 +46,11 @@ export default class TransactionProcessor {
       throw new NotFoundError(`eth account not found ${txn.attr.from}`);
     }
 
+    const { gasPriceWeiBN, gasLimitBN } = txn;
+    if (gasPriceWeiBN == null || gasLimitBN == null) {
+      throw new NotFoundError(`missing gas price or gas limit on tx ${txn.id}`);
+    }
+
     const web3Session = Web3Session.createSession();
     if (asset.isErc20) {
       const { contractAddress, ABI, decimals } = asset.attr;
@@ -66,35 +65,30 @@ export default class TransactionProcessor {
         from: txn.attr.from
       });
 
-      const session = new Erc20Session({
-        contract: contract,
-        fromAddress: txn.attr.from,
-        session: web3Session,
-        decimals: decimals,
-        ticker: asset.attr.ticker
-      });
+      const transfer = new Erc20TransferBuilder()
+        .setSession(web3Session)
+        .setContract(contract, decimals, "TST")
+        .setSenderAddress(txn.attr.from)
+        .setToAddress(txn.attr.to)
+        .setNonce(txn.attr.nonce)
+        .setGasLimit(gasLimitBN)
+        .setGasPriceWei(gasPriceWeiBN)
+        .setTransferAmount(txn.valueBN);
 
-      session.transferTo({
-        nonce: txn.attr.nonce,
-        privateKey: account.attr.privateKey,
-        gasPrice: txn.gasPriceWeiBN,
-        toAddress: txn.attr.to,
-        transferAmount: new BigNumber(txn.attr.value)
-      });
+      await transfer.build(account.attr.privateKey);
+      await transfer.send();
     } else {
-      const session = new EthSession({
-        session: web3Session,
-        fromAddress: txn.attr.from
-      });
+      const transfer = new EthTransferBuilder()
+        .setSession(web3Session)
+        .setSenderAddress(txn.attr.from)
+        .setToAddress(txn.attr.to)
+        .setNonce(txn.attr.nonce)
+        .setGasLimit(gasLimitBN)
+        .setGasPriceWei(gasPriceWeiBN)
+        .setTransferAmount(txn.valueBN);
 
-      session.transferTo({
-        nonce: txn.attr.nonce,
-        value: txn.valueBN,
-        gasLimit: txn.gasLimitBN,
-        gasPrice: txn.gasPriceBN,
-        toAddress: txn.attr.to,
-        privateKey: account.attr.privateKey
-      });
+      await transfer.build(account.attr.privateKey);
+      await transfer.send();
     }
   }
 

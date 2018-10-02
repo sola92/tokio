@@ -8,7 +8,7 @@ import {
 } from "../abi/ropsten/test-standard-token";
 
 import Web3Session from "../Web3Session";
-import Erc20Session from "../Erc20Session";
+import Erc20TransferBuilder from "../Erc20TransferBuilder";
 import { InsufficientBalanceError } from "../errors";
 
 require("dotenv").config();
@@ -28,23 +28,18 @@ test("send erc20 (TST token) with insufficient balance", async () => {
       from: sender.address
     });
 
-    const senderSession = new Erc20Session({
-      session,
-      contract,
-      ticker: "TST",
-      decimals: decimals,
-      fromAddress: sender.address
-    });
+    const transfer = new Erc20TransferBuilder()
+      .setSession(session)
+      .setContract(contract, decimals, "TST")
+      .setSenderAddress(sender.address)
+      .setToAddress(recipient.address);
 
-    const balance = await senderSession.getBalance();
+    const balance = await transfer.getSenderBalanceInNormalPrecision();
+    transfer.setTransferAmount(balance.plus(1));
 
     let error: ?InsufficientBalanceError = null;
     try {
-      await senderSession.transferTo({
-        toAddress: recipient.address,
-        privateKey: ROPSTEN_KEY,
-        transferAmount: balance.plus(1)
-      });
+      await transfer.build(ROPSTEN_KEY);
     } catch (e) {
       error = e;
     }
@@ -54,16 +49,5 @@ test("send erc20 (TST token) with insufficient balance", async () => {
       expect(error.ticker).toBe("TST");
       expect(error.balance.isLessThan(error.required)).toBeTruthy();
     }
-
-    const recipientSession = new Erc20Session({
-      session,
-      contract,
-      ticker: "TST",
-      decimals: decimals,
-      fromAddress: recipient.address
-    });
-
-    const recipientBalance = await recipientSession.getBalance();
-    expect(recipientBalance.isZero()).toBeTruthy();
   }
 });
