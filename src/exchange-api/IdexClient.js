@@ -152,8 +152,8 @@ export default class IdexClient {
 
   // Increment nonce by 1. Meant to be done after a successful transaction
   // with the IDEX contract.
-  incrementNonce() {
-    this.nonce += 1;
+  incrementNonce(incrAmount: number = 1) {
+    this.nonce += incrAmount;
   }
 
   async withdrawToken(tokenTicker: string, amount: string) {
@@ -200,17 +200,48 @@ export default class IdexClient {
     return postOrderResponse;
   }
 
-  // Buying a token by filling buy orders (sell ETH)
   async buyToken(
     tokenTicker: string,
     amount: string,
     expectedTotalPrice: string,
     priceTolerance: number
   ) {
+    return _tradeToken(
+      tokenTicker,
+      amount,
+      expectedTotalPrice,
+      priceTolerance,
+      "buy"
+    );
+  }
+
+  async sellToken(
+    tokenTicker: string,
+    amount: string,
+    expectedTotalPrice: string,
+    priceTolerance: number
+  ) {
+    return _tradeToken(
+      tokenTicker,
+      amount,
+      expectedTotalPrice,
+      priceTolerance,
+      "sell"
+    );
+  }
+
+  // Buying a token by filling buy orders (sell ETH)
+  async _tradeToken(
+    tokenTicker: string,
+    amount: string,
+    expectedTotalPrice: string,
+    priceTolerance: number,
+    type: OrderType
+  ) {
     const orderPrice: OrderPrice = await getOrdersForAmount(
       amount,
       tokenTicker,
-      "buy"
+      type
     );
 
     const expTotalPrice = BigNumber(expectedTotalPrice);
@@ -224,6 +255,7 @@ export default class IdexClient {
           tokenTicker,
           "IDEX",
           amount,
+          type,
           expTotalPrice.toFixed(),
           actualPrice.toFixed(),
           priceTolerance
@@ -231,17 +263,18 @@ export default class IdexClient {
       }
     }
     const nonce = await this.getNonce();
+    const tokenCurrencyInfo = await getCurrencyInfo(tokenTicker);
 
     // Call IdexAPI to post the Order
-    const buyTokenResponse = await trade(
+    const tradeResponse = await trade(
       orderPrice.orders,
       /* amountBuy */ amount,
-      /* tokenFillPrecision */ ETH_PRECISION,
+      /* tokenFillPrecision */ tokenCurrencyInfo.decimals,
       /* amountFill */ actualPrice.toFixed(),
       this.ethWalletAddress,
       nonce
     );
-    this.incrementNonce();
-    return buyTokenResponse;
+    this.incrementNonce(orderPrice.orders.length);
+    return tradeResponse;
   }
 }

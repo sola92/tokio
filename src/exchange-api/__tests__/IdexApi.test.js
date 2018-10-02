@@ -34,7 +34,7 @@ const ORDER_BOOK_RESPONSE = {
     ],
     bids: [
       {
-        price: "0.000303401295904014",
+        price: "1.2",
         amount: "3131.164000000000131072",
         orderHash: "qwerty"
       }
@@ -43,39 +43,46 @@ const ORDER_BOOK_RESPONSE = {
 };
 
 // getPriceForAmount() tests.
-test("get price for amount that partially fills one ask", async () => {
+test("get price for buy amount that partially fills one ask", async () => {
   axios.post.mockImplementation(() => Promise.resolve(ORDER_BOOK_RESPONSE));
   const expectedPrice = BigNumber(0.1).multipliedBy(1.03);
-  const actualPrice = await getPriceForAmount("LINK", 1);
+  const actualPrice = await getPriceForAmount("LINK", "1", "buy");
   expect(actualPrice).toEqual(expectedPrice);
 });
 
-test("get price for amount that fills one ask", async () => {
+test("get price for buy amount that fills one ask", async () => {
   axios.post.mockImplementation(() => Promise.resolve(ORDER_BOOK_RESPONSE));
   const expectedPrice = BigNumber(0.3).multipliedBy(1.03);
-  const actualPrice = await getPriceForAmount("LINK", 3);
+  const actualPrice = await getPriceForAmount("LINK", "3", "buy");
   expect(actualPrice).toEqual(expectedPrice);
 });
 
-test("get price for amount that fills 1 ask and a partial ask", async () => {
+test("get price for buy amount that fills 1 ask and a partial ask", async () => {
   axios.post.mockImplementation(() => Promise.resolve(ORDER_BOOK_RESPONSE));
   const expectedPrice = BigNumber(0.5).multipliedBy(1.03);
-  const actualPrice = await getPriceForAmount("LINK", 4);
+  const actualPrice = await getPriceForAmount("LINK", "4", "buy");
   expect(actualPrice).toEqual(expectedPrice);
 });
 
-test("get price for amount that fills multiple asks", async () => {
+test("get price for buy amount that fills multiple asks", async () => {
   axios.post.mockImplementation(() => Promise.resolve(ORDER_BOOK_RESPONSE));
   const expectedPrice = BigNumber(1.7).multipliedBy(1.03);
-  const actualPrice = await getPriceForAmount("LINK", 10);
+  const actualPrice = await getPriceForAmount("LINK", "10", "buy");
   expect(actualPrice).toEqual(expectedPrice);
 });
 
-test("get price for amount that cannot be filled", async () => {
+test("get price for buy amount that cannot be filled", async () => {
   axios.post.mockImplementation(() => Promise.resolve(ORDER_BOOK_RESPONSE));
-  await expect(getPriceForAmount("LINK", 11)).rejects.toThrowError(
+  await expect(getPriceForAmount("LINK", "11", "buy")).rejects.toThrowError(
     "Unable to fill order for token LINK on IDEX. Can only fill 10/11."
   );
+});
+
+test("get price for sell amount that partially fills one bid", async () => {
+  axios.post.mockImplementation(() => Promise.resolve(ORDER_BOOK_RESPONSE));
+  const expectedPrice = BigNumber(1.2).multipliedBy(1.03);
+  const actualPrice = await getPriceForAmount("LINK", "1", "sell");
+  expect(actualPrice).toEqual(expectedPrice);
 });
 
 // trade() tests

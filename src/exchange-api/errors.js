@@ -27,6 +27,7 @@ export class CannotFillOrderError extends Error {
 export class TotalPriceIncreasedError extends Error {
   ticker: string;
   exchange: string;
+  type: string;
   requestedAmount: string;
   expectedPrice: string;
   actualPrice: string;
@@ -35,6 +36,7 @@ export class TotalPriceIncreasedError extends Error {
   constructor(
     ticker: string,
     exchange: string,
+    type: string,
     requestedAmount: string,
     expectedPrice: string,
     actualPrice: string,
@@ -42,11 +44,14 @@ export class TotalPriceIncreasedError extends Error {
     ...params: Array<any>
   ) {
     super(
-      `Token=${ticker}, Exchange=${exchange}, RequestedAmount=${requestedAmount}. ActualPrice=${actualPrice} is too high compared to ExpectedPrice=${expectedPrice} with tolerance=${tolerance}.`
+      `Token=${ticker}, Exchange=${exchange}, Type=${type}, RequestedAmount=${requestedAmount}. ActualPrice=${actualPrice} is too high compared to ExpectedPrice=${expectedPrice} with tolerance=${tolerance}.`
     );
     this.ticker = ticker;
     this.exchange = exchange;
+    this.type = type;
     this.requestedAmount = requestedAmount;
+    this.expectedPrice = expectedPrice;
+    this.actualPrice = actualPrice;
     this.tolerance = tolerance;
   }
 }

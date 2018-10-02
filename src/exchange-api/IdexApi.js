@@ -119,23 +119,25 @@ export async function getOrdersForAmount(
   // Return first i orders that can be used to fill the buy.
   const orderPrice: OrderPrice = {
     totalPrice: totalPrice,
-    type: "buy",
+    type: type,
     orders: asks.slice(0, i)
   };
-  orderPrice.totalPrice = totalPrice;
-  orderPrice.type = "buy";
-  orderPrice.orders = asks.slice(0, i);
   return orderPrice;
 }
 
 // Returns amount of ETH required to purchase 'amount' of 'ticker' token.
 // Includes exchange fee.
-export async function getPriceForAmount(ticker: string, amount: string) {
+export async function getPriceForAmount(
+  ticker: string,
+  amount: string,
+  orderType: OrderType
+) {
   const orderPrice: OrderPrice = await getOrdersForAmount(
     amount,
     ticker,
-    "buy"
+    orderType
   );
+  console.log("orders: " + JSON.stringify(orderPrice.orders));
   return orderPrice.totalPrice.multipliedBy(1 + FEE_RATIO);
 }
 

@@ -1,5 +1,10 @@
 import IdexClient from "./IdexClient";
-import { getOrdersForAmount, getOrderBook, getOpenOrders } from "./IdexApi";
+import {
+  getPriceForAmount,
+  getOrdersForAmount,
+  getOrderBook,
+  getOpenOrders
+} from "./IdexApi";
 const util = require("util");
 
 async function postABuyOrder() {
@@ -12,6 +17,28 @@ async function postABuyOrder() {
   }
 }
 //postABuyOrder();
+
+async function getPriceToBuy10Link() {
+  try {
+    let b = await getPriceForAmount("LINK", "1000", "buy");
+    console.log(JSON.stringify(b));
+  } catch (error) {
+    //console.log("error: " + error.response.data.error);
+    console.log("error: " + util.inspect(error));
+  }
+}
+getPriceToBuy10Link();
+
+async function getPriceToSell10Link() {
+  try {
+    let b = await getPriceForAmount("LINK", "1000", "sell");
+    console.log(JSON.stringify(b));
+  } catch (error) {
+    //console.log("error: " + error.response.data.error);
+    console.log("error: " + util.inspect(error));
+  }
+}
+//getPriceToSell10Link();
 
 async function printLinkAsks() {
   try {
@@ -69,4 +96,4 @@ async function depositEth() {
     console.log("error depositing: " + util.inspect(error));
   }
 }
-depositEth();
+//depositEth();
