@@ -94,8 +94,6 @@ export default class TransactionProcessor {
 
   @handler()
   static async retryEthTransaction(transationId: number) {
-    const eth = await Asset.fromTicker("eth");
-    const session = Web3Session.createSession();
     const txn: ?EthereumTransaction = await EthereumTransaction.findById(
       transationId
     );
@@ -109,9 +107,7 @@ export default class TransactionProcessor {
       txn.attr.assetId
     );
     if (account == null) {
-      throw new NotFoundError(
-        `${txn.attr.ticker} account not found: ${txn.attr.from}`
-      );
+      throw new NotFoundError(`ETH account not found: ${txn.attr.from}`);
     }
 
     await txn.syncWithNetwork();

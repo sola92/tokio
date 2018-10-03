@@ -41,13 +41,13 @@ test("test pending deposit", async () => {
   if (accountBalance == null || userBalance == null) {
     return;
   }
-  expect(accountBalance.pendingBalanceBN.toString()).toBe(
+  expect(accountBalance.totalPendingBN.toString()).toBe(
     new BigNumber(10).toString()
   );
   expect(accountBalance.availableBalanceBN.toString()).toBe(
     new BigNumber(0).toString()
   );
-  expect(userBalance.pendingBalanceBN.toString()).toBe(
+  expect(userBalance.totalPendingBN.toString()).toBe(
     new BigNumber(10).toString()
   );
   expect(userBalance.availableBalanceBN.toString()).toBe(
@@ -86,14 +86,14 @@ test("test pending deposit becoming confirmed", async () => {
   if (accountBalance == null || userBalance == null) {
     return;
   }
-  expect(accountBalance.pendingBalanceBN.toString()).toBe(
+  expect(accountBalance.totalPendingBN.toString()).toBe(
     new BigNumber(10).toString()
   );
   expect(accountBalance.availableBalanceBN.toString()).toBe(
     new BigNumber(0).toString()
   );
 
-  expect(userBalance.pendingBalanceBN.toString()).toBe(
+  expect(userBalance.totalPendingBN.toString()).toBe(
     new BigNumber(10).toString()
   );
   expect(userBalance.availableBalanceBN.toString()).toBe(
@@ -104,13 +104,13 @@ test("test pending deposit becoming confirmed", async () => {
 
   await accountBalance.refresh();
   await userBalance.refresh();
-  expect(accountBalance.pendingBalanceBN.toString()).toBe(
+  expect(accountBalance.totalPendingBN.toString()).toBe(
     new BigNumber(10).toString()
   );
   expect(accountBalance.availableBalanceBN.toString()).toBe(
     new BigNumber(10).toString()
   );
-  expect(userBalance.pendingBalanceBN.toString()).toBe(
+  expect(userBalance.totalPendingBN.toString()).toBe(
     new BigNumber(10).toString()
   );
   expect(userBalance.availableBalanceBN.toString()).toBe(

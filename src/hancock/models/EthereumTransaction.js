@@ -5,7 +5,7 @@ import type { BaseFields } from "src/lib/BaseModel";
 
 import Web3Session from "src/lib/ethereum/Web3Session";
 
-export type State = "pending" | "confirmed" | "fully_confirmed";
+export type State = "pending" | "confirmed" | "fully_confirmed" | "cancelled";
 export type Fields = BaseFields & {
   to: EthAddress,
   hash?: string,

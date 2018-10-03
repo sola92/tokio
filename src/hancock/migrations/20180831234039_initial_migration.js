@@ -8,7 +8,7 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
     table.timestamp("updatedAt", 3).defaultTo(knex.fn.now(3));
 
     table
-      .decimal("pendingBalance", 65, 30)
+      .decimal("totalPending", 65, 30)
       .notNullable()
       .defaultTo(0);
 
@@ -47,7 +47,7 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
     table.timestamp("updatedAt", 3).defaultTo(knex.fn.now(3));
 
     table
-      .decimal("pendingBalance", 65, 30)
+      .decimal("totalPending", 65, 30)
       .notNullable()
       .defaultTo(0);
 
@@ -168,7 +168,7 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
   CREATE PROCEDURE update_account_balance (IN account_id INT, IN user_id INT, IN asset_id INT)
     BEGIN
       DECLARE available_balance DECIMAL(65, 30);
-      DECLARE pending_balance DECIMAL(65, 30);
+      DECLARE total_pending DECIMAL(65, 30);
       SELECT SUM(amount) INTO available_balance FROM balance_events
       WHERE (
         userId = user_id and
@@ -181,26 +181,20 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
         )
       );
 
-      SELECT SUM(amount) INTO pending_balance FROM balance_events
+      SELECT SUM(amount) INTO total_pending FROM balance_events
       WHERE (
         userId = user_id and
         assetId = asset_id and
         accountId = account_id and
-        state != "cancelled"
+        state = "pending"
       );
 
       IF available_balance IS NULL THEN
         SET available_balance := 0;
       END IF;
 
-      IF pending_balance IS NULL THEN
-        SET pending_balance := 0;
-      END IF;
-
-      IF pending_balance < 0
-      THEN
-         SIGNAL SQLSTATE '45000'
-           SET MESSAGE_TEXT = 'Error: Pending balance cannot be less than zero!';
+      IF total_pending IS NULL THEN
+        SET total_pending := 0;
       END IF;
 
       IF available_balance < 0
@@ -209,15 +203,15 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
            SET MESSAGE_TEXT = 'Error: available balance cannot be less than zero!';
       END IF;
 
-      IF pending_balance < available_balance
+      IF available_balance + total_pending < 0
       THEN
          SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Error: Pending balance should always be less available balance';
+           SET MESSAGE_TEXT = 'Error: Pending overdraw!';
       END IF;
 
-      INSERT INTO account_balances (userId, accountId, assetId, pendingBalance, availableBalance)
-      VALUES (user_id, account_id, asset_id, pending_balance, available_balance)
-      ON DUPLICATE KEY UPDATE pendingBalance=pending_balance, availableBalance=available_balance;
+      INSERT INTO account_balances (userId, accountId, assetId, totalPending, availableBalance)
+      VALUES (user_id, account_id, asset_id, total_pending, available_balance)
+      ON DUPLICATE KEY UPDATE totalPending=total_pending, availableBalance=available_balance;
   END
   `);
 
@@ -229,7 +223,7 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
       DECLARE total_pending DECIMAL(65, 30);
 
       SELECT
-        SUM(pendingBalance), SUM(availableBalance)
+        SUM(totalPending), SUM(availableBalance)
         INTO total_pending, total_available
       FROM account_balances
       WHERE (
@@ -237,9 +231,9 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
         assetId = asset_id
       );
 
-      INSERT INTO user_balances (userId, assetId, pendingBalance, availableBalance)
+      INSERT INTO user_balances (userId, assetId, totalPending, availableBalance)
       VALUES (user_id, asset_id, total_pending, total_available)
-      ON DUPLICATE KEY UPDATE pendingBalance=total_pending, availableBalance=total_available;
+      ON DUPLICATE KEY UPDATE totalPending=total_pending, availableBalance=total_available;
     END
     `);
 
@@ -251,13 +245,43 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
       IF OLD.amount != NEW.amount
       THEN
            SIGNAL SQLSTATE '45000'
-          SET MESSAGE_TEXT = 'Error: cannot change the amount of a transaction';
+          SET MESSAGE_TEXT = 'Error: cannot change the amount of a balance event';
+      END IF;
+
+      IF OLD.accountId != NEW.accountId
+      THEN
+           SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Error: cannot change the accountId of a balance event';
+      END IF;
+
+      IF OLD.userId != NEW.userId
+      THEN
+           SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Error: cannot change the userId of a balance event';
+      END IF;
+
+      IF OLD.assetId != NEW.assetId
+      THEN
+           SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Error: cannot change the assetId of a balance event';
+      END IF;
+
+      IF OLD.action != NEW.action
+      THEN
+           SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Error: cannot change the action of a balance event';
       END IF;
 
       IF OLD.state = "confirmed" AND NEW.state != "confirmed"
       THEN
            SIGNAL SQLSTATE '45000'
           SET MESSAGE_TEXT = 'Error: "confirmed" is a final state';
+      END IF;
+
+      IF OLD.state = "cancelled" AND NEW.state != "cancelled"
+      THEN
+           SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Error: "cancelled" is a final state';
       END IF;
 
     	CALL update_account_balance(NEW.accountId, NEW.userId, NEW.assetId);

@@ -6,15 +6,15 @@ import type { BaseFields } from "src/lib/BaseModel";
 export type Fields = BaseFields & {
   userId: number,
   assetId: number,
-  pendingBalance: number,
+  totalPending: number,
   availableBalance: number
 };
 
 export default class UserBalance extends BaseModel<Fields> {
   static tableName = "user_balances";
 
-  get pendingBalanceBN(): BigNumber {
-    return new BigNumber(this.attr.pendingBalance);
+  get totalPendingBN(): BigNumber {
+    return new BigNumber(this.attr.totalPending);
   }
 
   get availableBalanceBN(): BigNumber {
