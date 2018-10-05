@@ -7,7 +7,6 @@ import AccountBalance from "../AccountBalance";
 
 import { InvalidStateError } from "src/hancock/errors";
 
-import { BigNumber } from "bignumber.js";
 import { randomId } from "src/test/util";
 
 test("test pending deposit", async () => {
@@ -41,18 +40,10 @@ test("test pending deposit", async () => {
   if (accountBalance == null || userBalance == null) {
     return;
   }
-  expect(accountBalance.totalPendingBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(0).toString()
-  );
-  expect(userBalance.totalPendingBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(0).toString()
-  );
+  expect(accountBalance.totalPendingBN.toNumber()).toBe(10);
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(0);
+  expect(userBalance.totalPendingBN.toNumber()).toBe(10);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(0);
 });
 
 test("test pending deposit becoming confirmed", async () => {
@@ -86,36 +77,19 @@ test("test pending deposit becoming confirmed", async () => {
   if (accountBalance == null || userBalance == null) {
     return;
   }
-  expect(accountBalance.totalPendingBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(0).toString()
-  );
-
-  expect(userBalance.totalPendingBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(0).toString()
-  );
+  expect(accountBalance.totalPendingBN.toNumber()).toBe(10);
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(0);
+  expect(userBalance.totalPendingBN.toNumber()).toBe(10);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(0);
 
   await deposit.confirm();
 
   await accountBalance.refresh();
   await userBalance.refresh();
-  expect(accountBalance.totalPendingBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-  expect(userBalance.totalPendingBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
+  expect(accountBalance.totalPendingBN.toNumber()).toBe(0);
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(10);
+  expect(userBalance.totalPendingBN.toNumber()).toBe(0);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(10);
 });
 
 test("test withdrawal", async () => {
@@ -149,13 +123,8 @@ test("test withdrawal", async () => {
   if (accountBalance == null || userBalance == null) {
     return;
   }
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(10);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(10);
   await deposit.confirm();
 
   const withdrawal: BalanceEvent = await BalanceEvent.insert({
@@ -171,23 +140,14 @@ test("test withdrawal", async () => {
   await accountBalance.refresh();
   await userBalance.refresh();
 
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(5).toString()
-  );
-
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(5).toString()
-  );
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(5);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(5);
   await withdrawal.confirm();
 
   await accountBalance.refresh();
   await userBalance.refresh();
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(5).toString()
-  );
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(5).toString()
-  );
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(5);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(5);
 });
 
 test("test cancelled withdrawal", async () => {
@@ -221,13 +181,8 @@ test("test cancelled withdrawal", async () => {
   if (accountBalance == null || userBalance == null) {
     return;
   }
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(10);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(10);
   await deposit.confirm();
 
   const withdrawal: BalanceEvent = await BalanceEvent.insert({
@@ -243,24 +198,19 @@ test("test cancelled withdrawal", async () => {
   await accountBalance.refresh();
   await userBalance.refresh();
 
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(5).toString()
-  );
-
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(5).toString()
-  );
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(5);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(5);
+  expect(userBalance.totalPendingBN.toNumber()).toBe(-5);
+  expect(accountBalance.totalPendingBN.toNumber()).toBe(-5);
 
   await withdrawal.cancel();
-
-  await accountBalance.refresh();
   await userBalance.refresh();
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
+  await accountBalance.refresh();
+
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(10);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(10);
+  expect(userBalance.totalPendingBN.toNumber()).toBe(0);
+  expect(accountBalance.totalPendingBN.toNumber()).toBe(0);
 });
 
 test("test cancelled deposit", async () => {
@@ -294,23 +244,15 @@ test("test cancelled deposit", async () => {
   if (accountBalance == null || userBalance == null) {
     return;
   }
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(0).toString()
-  );
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(0).toString()
-  );
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(0);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(0);
   await deposit.cancel();
 
   await accountBalance.refresh();
   await userBalance.refresh();
 
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(0).toString()
-  );
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(0).toString()
-  );
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(0);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(0);
 });
 
 test("test cancelling a confirmed withdrawal fails", async () => {
@@ -344,12 +286,8 @@ test("test cancelling a confirmed withdrawal fails", async () => {
   if (accountBalance == null || userBalance == null) {
     return;
   }
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(10);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(10);
 
   const withdrawal: BalanceEvent = await BalanceEvent.insert({
     userId: USER_ID,
@@ -363,23 +301,15 @@ test("test cancelling a confirmed withdrawal fails", async () => {
 
   await accountBalance.refresh();
   await userBalance.refresh();
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(5).toString()
-  );
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(5).toString()
-  );
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(5);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(5);
 
   expect(withdrawal.cancel()).rejects.toBeInstanceOf(InvalidStateError);
 
   await accountBalance.refresh();
   await userBalance.refresh();
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(5).toString()
-  );
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(5).toString()
-  );
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(5);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(5);
 });
 
 test("test cancelling a confirmed deposit fails", async () => {
@@ -413,22 +343,18 @@ test("test cancelling a confirmed deposit fails", async () => {
   if (accountBalance == null || userBalance == null) {
     return;
   }
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(10);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(10);
+  expect(userBalance.totalPendingBN.toNumber()).toBe(0);
+  expect(accountBalance.totalPendingBN.toNumber()).toBe(0);
   expect(deposit.cancel()).rejects.toBeInstanceOf(InvalidStateError);
 
   await accountBalance.refresh();
   await userBalance.refresh();
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(10);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(10);
+  expect(userBalance.totalPendingBN.toNumber()).toBe(0);
+  expect(accountBalance.totalPendingBN.toNumber()).toBe(0);
 });
 
 test("test cannot change log amount", async () => {
@@ -462,20 +388,12 @@ test("test cannot change log amount", async () => {
   if (accountBalance == null || userBalance == null) {
     return;
   }
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(10);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(10);
   expect(deposit.update({ amount: "100" })).rejects.toBeInstanceOf(Error);
 
   await accountBalance.refresh();
   await userBalance.refresh();
-  expect(accountBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
-  expect(userBalance.availableBalanceBN.toString()).toBe(
-    new BigNumber(10).toString()
-  );
+  expect(accountBalance.availableBalanceBN.toNumber()).toBe(10);
+  expect(userBalance.availableBalanceBN.toNumber()).toBe(10);
 });

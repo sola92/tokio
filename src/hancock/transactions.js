@@ -153,7 +153,7 @@ router.post(
             accountId: account.attr.id,
             assetId: asset.attr.id,
             amount: transferAmount.times(-1).toString(),
-            action: "withdraw",
+            action: "withdrawal",
             note: note || `withdrawal to ${to}`,
             state: "pending",
             withdrawalId: ethTxn.attr.id
