@@ -260,7 +260,7 @@ test("test cancelling a confirmed withdrawal fails", async () => {
   const ASSET_ID = randomId();
   const ACCOUNT_ID = randomId();
 
-  const deposit: BalanceEvent = await BalanceEvent.insert({
+  await BalanceEvent.insert({
     userId: USER_ID,
     accountId: ACCOUNT_ID,
     assetId: ASSET_ID,

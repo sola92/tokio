@@ -35,4 +35,6 @@ test("POST eth blockchain transaction", async () => {
     });
 
   expect(res.statusCode).toBe(200);
+  // const txnId: number = res.body.id;
+  // await TransactionProcessor.broadcastEthTransaction(txnId);
 });

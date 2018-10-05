@@ -5,7 +5,7 @@ import type { BaseFields } from "src/lib/BaseModel";
 
 import Web3Session from "src/lib/ethereum/Web3Session";
 
-export type State = "pending" | "confirmed" | "fully_confirmed" | "cancelled";
+export type State = "pending" | "confirmed" | "cancelled";
 export type Fields = BaseFields & {
   to: EthAddress,
   hash?: string,
@@ -26,6 +26,7 @@ export type Fields = BaseFields & {
 
 export default class EthereumTransaction extends BaseModel<Fields> {
   static tableName = "eth_transaction";
+  static NUM_CONFIRMATIONS = 1;
 
   get isERC20(): boolean {
     return this.attr.contractAddress != null;
@@ -68,7 +69,12 @@ export default class EthereumTransaction extends BaseModel<Fields> {
 
     const session = Web3Session.createSession();
     const w3Txn = await session.getTransaction(hash);
-    if (w3Txn == null) {
+    const latestBlock = await session.getLatestBlock();
+    if (
+      w3Txn == null ||
+      w3Txn.blockNumber + EthereumTransaction.NUM_CONFIRMATIONS <
+        latestBlock.number
+    ) {
       return false;
     }
 

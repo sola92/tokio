@@ -186,7 +186,7 @@ test("POST concurrent /transaction calls. Only one should succeed", async () => 
   const responses = await Promise.all(spamRequests);
   const responseCodes = responses.map(res => res.statusCode);
 
-  // Should be one success.
+  // Should be at most, one success.
   expect(responseCodes.filter(c => c == 200).length).toBeLessThanOrEqual(1);
   const newBalance: BigNumber = await user.getAvailableBalance(eth.attr.id);
   expect(newBalance.toNumber()).toBeGreaterThanOrEqual(0);
