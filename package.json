@@ -89,7 +89,8 @@
       "afterEach": true,
       "afterAll": true,
       "beforeAll": true,
-      "IntervalID": true
+      "IntervalID": true,
+      "TimeoutID": true
     },
     "rules": {
       "indent": 0,

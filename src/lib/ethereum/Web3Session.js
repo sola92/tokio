@@ -31,6 +31,7 @@ export default class Web3Session {
   static ETH_DECIMALS: number = 18;
   static ONE_WEI: BigNumber = new BigNumber("1e-18");
   static ONE_GWEI: BigNumber = new BigNumber("1e-9");
+  static AVG_BLOCK_TIME_SECS = 14;
 
   constructor(nodeEndpoint: string) {
     this.web3 = new Web3(new Web3.providers.HttpProvider(nodeEndpoint));

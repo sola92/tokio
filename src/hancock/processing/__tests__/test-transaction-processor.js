@@ -7,6 +7,7 @@ import request from "supertest";
 import { createUser } from "src/test/util";
 
 import Web3Session from "src/lib/ethereum/Web3Session";
+import EthereumBlockScanner from "src/hancock/lib/EthereumBlockScanner";
 import TransactionProcessor from "src/hancock/processing/TransactionProcessor";
 
 require("dotenv").config();
@@ -15,6 +16,9 @@ const TEST_ACCOUNT: string = process.env.ROPSTEN_ACCOUNT || "";
 jest.setTimeout(100000);
 
 test("POST eth blockchain transaction", async () => {
+  const scanner = new EthereumBlockScanner();
+  scanner.start();
+
   const hancock = createApp();
   const user = await createUser({})
     .withEthAccountBalance({
