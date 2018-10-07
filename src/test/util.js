@@ -48,6 +48,11 @@ export const randomString = (): string => uuidv1();
 
 export const randomId = (): number => Math.floor(Math.random() * 1000) + 1;
 
+export const sleep = (timeoutMs: number): Promise<boolean> =>
+  new Promise((resolve, reject) => {
+    setTimeout(() => resolve(true), timeoutMs);
+  });
+
 export const createTestAssets = async () => {
   await models.Asset.insert({
     name: "Test Token",
@@ -166,23 +171,24 @@ class UserMockBuilder {
     return this;
   }
 
-  withEthAccountBalance({
+  withAssetBalance({
+    asset,
     address,
     balance
   }: {
+    asset: Asset,
     address: EthAddress,
     balance: BigNumber
   }): this {
     this.operations.push(async () => {
       const { user } = this;
-      const eth = await Asset.fromTicker("eth");
-      const account = await Account.findByAddress(address, eth.id);
+      const account = await Account.findByAddress(address, asset.id);
       if (account == null) {
-        return;
+        throw `${asset.attr.ticker} account not found for at ${address}`;
       }
 
       await user.addAccount(account);
-      await depositToAccount(account, user.id, eth.id, balance);
+      await depositToAccount(account, user.id, asset.id, balance);
     });
 
     return this;

@@ -12,14 +12,14 @@ import Asset from "../models/Asset";
 test("GET /transaction with invalid ticker", async () => {
   const hancock = createApp();
   const res = await request(hancock).get("/transactions/xyz-asdlkj");
-  expect(res.statusCode).toBe(NotFoundError.responseCode);
+  expect(res.statusCode).toBe(NotFoundError.httpResponseCode);
   expect(res.body.code).toBe(NotFoundError.code);
 });
 
 test("GET /transaction with invalid transaction id", async () => {
   const hancock = createApp();
   const res = await request(hancock).get("/transactions/eth-12123");
-  expect(res.statusCode).toBe(NotFoundError.responseCode);
+  expect(res.statusCode).toBe(NotFoundError.httpResponseCode);
   expect(res.body.code).toBe(NotFoundError.code);
 });
 

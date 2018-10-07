@@ -18,7 +18,7 @@ export default class EthereumBlockScanner {
     const pendingTxns: Array<
       EthereumTransaction
     > = await EthereumTransaction.query().where("state", "pending");
-
+    console.log(`Scanning blockchain for ${pendingTxns.length} transactions`);
     for (const txn of pendingTxns) {
       txn.syncWithNetwork();
     }

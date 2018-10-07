@@ -34,7 +34,7 @@ export default class TransactionProcessor {
       throw new NotFoundError(`asset not found ${txn.attr.assetId}`);
     }
 
-    if (!asset.isEth || !asset.isErc20) {
+    if (!asset.isEth && !asset.isErc20) {
       throw `not an ethereum asset ${asset.attr.ticker}`;
     }
 
@@ -76,7 +76,8 @@ export default class TransactionProcessor {
         .setTransferAmount(txn.valueBN);
 
       await transfer.build(account.attr.privateKey);
-      await transfer.send();
+      const hash = await transfer.send();
+      await txn.update({ hash });
     } else {
       const transfer = new EthTransferBuilder()
         .setSession(web3Session)
@@ -88,7 +89,8 @@ export default class TransactionProcessor {
         .setTransferAmount(txn.valueBN);
 
       await transfer.build(account.attr.privateKey);
-      await transfer.send();
+      const hash = await transfer.send();
+      await txn.update({ hash });
     }
   }
 
@@ -121,15 +123,15 @@ export default class TransactionProcessor {
     }
 
     // Add 10gwei to gas price and re-broadcast
-    const increment = Web3Session.ONE_GWEI.times(10);
-    account.incrementGasBalanceWei(null, increment);
-    const newGasPrice = txn.gasPriceWeiBN.plus(increment);
-    await txn.update({
-      gasPrice: newGasPrice.toString(),
-      numRetries: txn.attr.numRetries + 1
-    });
-
-    console.log("re-sending eth transaction");
-    this.broadcastEthTransaction.publish(transationId);
+    // const increment = Web3Session.ONE_GWEI.times(10);
+    // account.incrementGasBalanceWei(null, increment);
+    // const newGasPrice = txn.gasPriceWeiBN.plus(increment);
+    // await txn.update({
+    //   gasPrice: newGasPrice.toString(),
+    //   numRetries: txn.attr.numRetries + 1
+    // });
+    //
+    // console.log("re-sending eth transaction");
+    // this.broadcastEthTransaction.publish(transationId);
   }
 }

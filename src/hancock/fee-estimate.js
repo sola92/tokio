@@ -31,7 +31,7 @@ export default class FeeEstimator {
       }
     }
 
-    return new BigNumber(37000).times(1.5);
+    return new BigNumber(56000).times(1.5);
   }
 
   static async estimateGasPrice(
@@ -47,7 +47,7 @@ export default class FeeEstimator {
       }
     }
 
-    return session.toWei("0.0000000051", "ether");
+    return session.toWei("300", "gwei");
   }
 
   static async estimateFee(asset: Asset): Promise<?BigNumber> {

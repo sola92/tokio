@@ -77,7 +77,7 @@ export default class EthereumTransaction extends BaseModel<Fields> {
     ) {
       return false;
     }
-
+    console.log(`Confirming transaction ${this.id}`);
     await this.update({ blockNumber: w3Txn.blockNumber, state: "confirmed" });
     return true;
   }

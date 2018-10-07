@@ -35,7 +35,7 @@ test("POST /transaction with invalid body", async () => {
         [param]: param
       });
 
-    expect(res.statusCode).toBe(InvalidParameterError.responseCode);
+    expect(res.statusCode).toBe(InvalidParameterError.httpResponseCode);
     expect(res.body.code).toBe(InvalidParameterError.code);
   }
 });
@@ -58,7 +58,7 @@ test("POST /transaction with invalid ticker", async () => {
       value: "0.01"
     });
 
-  expect(res.statusCode).toBe(InvalidParameterError.responseCode);
+  expect(res.statusCode).toBe(InvalidParameterError.httpResponseCode);
   expect(res.body.code).toBe(InvalidParameterError.code);
 });
 
@@ -77,7 +77,7 @@ test("POST /transaction with same sender and recipient", async () => {
       value: "0.01"
     });
 
-  expect(res.statusCode).toBe(InvalidRecipientError.responseCode);
+  expect(res.statusCode).toBe(InvalidRecipientError.httpResponseCode);
   expect(res.body.code).toBe(InvalidRecipientError.code);
 });
 
@@ -95,7 +95,7 @@ test("POST /transaction with unknown sender account", async () => {
       value: "2000000"
     });
 
-  expect(res.statusCode).toBe(UnknownAccountError.responseCode);
+  expect(res.statusCode).toBe(UnknownAccountError.httpResponseCode);
   expect(res.body.code).toBe(UnknownAccountError.code);
 });
 
@@ -119,7 +119,7 @@ test("POST /transaction with insufficient balance", async () => {
       value: "20000000"
     });
 
-  expect(res.statusCode).toBe(InvalidBalanceError.responseCode);
+  expect(res.statusCode).toBe(InvalidBalanceError.httpResponseCode);
   expect(res.body.code).toBe(InvalidBalanceError.code);
 
   const newBalance: BigNumber = await user.getAvailableBalance(eth.attr.id);
@@ -184,10 +184,10 @@ test("POST concurrent /transaction calls. Only one should succeed", async () => 
     .fill(undefined)
     .map(() => postRequest());
   const responses = await Promise.all(spamRequests);
-  const responseCodes = responses.map(res => res.statusCode);
+  const httpResponseCodes = responses.map(res => res.statusCode);
 
   // Should be at most, one success.
-  expect(responseCodes.filter(c => c == 200).length).toBeLessThanOrEqual(1);
+  expect(httpResponseCodes.filter(c => c == 200).length).toBeLessThanOrEqual(1);
   const newBalance: BigNumber = await user.getAvailableBalance(eth.attr.id);
   expect(newBalance.toNumber()).toBeGreaterThanOrEqual(0);
 });

@@ -11,8 +11,13 @@ import { createUser } from "src/test/util";
 import { BigNumber } from "bignumber.js";
 import Web3Session from "src/lib/ethereum/Web3Session";
 
-import User from "src/hancock/models/User";
-import Asset from "src/hancock/models/Asset";
+import {
+  User,
+  Account,
+  Asset,
+  EthereumTransaction,
+  AccountBalance
+} from "src/hancock/models";
 
 require("dotenv").config();
 const TEST_ACCOUNT: string = process.env.ROPSTEN_ACCOUNT || "";
@@ -34,11 +39,20 @@ const TEST_ACCOUNT_KEY: string = process.env.ROPSTEN_ACCOUNT_KEY || "";
   });
 
   const user = await createUser({ isHouse: true })
-    .withEthAccountBalance({
+    .withAssetBalance({
+      asset: eth,
       address: TEST_ACCOUNT,
       balance: new BigNumber(1)
     })
     .build();
+
+  const tst = await Asset.fromTicker("tst");
+  await createAccount({
+    address: TEST_ACCOUNT,
+    assetId: tst.id,
+    privateKey: TEST_ACCOUNT_KEY,
+    lastNonce
+  });
 
   process.exit(0);
 })();

@@ -4,7 +4,7 @@ import type { $Request, $Response, Middleware, NextFunction } from "express";
 
 export class ApiError extends Error {
   static code: string;
-  static responseCode: number;
+  static httpResponseCode: number;
 
   constructor(message: string, rootError?: Error) {
     super(message);
@@ -44,7 +44,7 @@ export const apiErrorMiddleware = (): Middleware => {
     if (error instanceof ApiError) {
       const apiError: ApiError = error;
       return res
-        .status(apiError.constructor.responseCode)
+        .status(apiError.constructor.httpResponseCode)
         .json({ code: apiError.constructor.code, message: apiError.message });
     }
     next(error);

@@ -24,8 +24,6 @@ const MAINNET_NODE =
 const ROPSTEN_NODE =
   "https://ropsten.infura.io/v3/fdc23aa441204f8c92c9bc609e19c01c";
 
-const NONCE_TRACKER: { [string]: number } = {};
-
 export default class Web3Session {
   web3: Web3ApiType;
   static ETH_DECIMALS: number = 18;
@@ -174,15 +172,7 @@ export default class Web3Session {
   }
 
   async getNonce(address: EthAddress): Promise<number> {
-    if (NONCE_TRACKER[address] == null) {
-      const txCount = await this.getTransactionCount(address);
-      NONCE_TRACKER[address] = txCount + 1;
-      return txCount;
-    } else {
-      const nonce = NONCE_TRACKER[address];
-      NONCE_TRACKER[address] = nonce + 1;
-      return nonce;
-    }
+    return this.getTransactionCount(address);
   }
 
   async isMainnet(): Promise<boolean> {

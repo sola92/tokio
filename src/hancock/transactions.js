@@ -63,14 +63,22 @@ router.post(
       throw new InvalidRecipientError(`Sender cannot be reciepient ${from}`);
     }
 
+    const eth = await Asset.fromTicker("eth");
     const asset = await Asset.fromTickerOptional(ticker);
     if (asset == null) {
       throw new InvalidParameterError(`Asset not found ${ticker}`);
     }
 
-    const account: ?Account = await Account.findByAddress(from, asset.attr.id);
+    const account: ?Account = await Account.findByAddress(from, asset.id);
+    const ethAccount: ?Account = await Account.findByAddress(from, eth.id);
     if (account == null) {
-      throw new UnknownAccountError(`Account not found: ${from}`);
+      throw new UnknownAccountError(
+        `${asset.attr.ticker} account not found at ${from}`
+      );
+    }
+
+    if (ethAccount == null) {
+      throw new UnknownAccountError(`ETH account not found at ${from}`);
     }
 
     const accountBalance = await AccountBalance.fetch({
@@ -133,8 +141,8 @@ router.post(
         await BalanceEvent.insert(
           {
             userId: house.id,
-            accountId: account.id,
-            assetId: asset.id,
+            accountId: ethAccount.id,
+            assetId: eth.id,
             amount: session
               .weiToEther(estimateFee)
               .times(-1)
@@ -147,6 +155,7 @@ router.post(
           trx
         );
 
+        console.log(`withdrawing ${transferAmount.times(-1).toString()}`);
         await BalanceEvent.insert(
           {
             userId: userId,

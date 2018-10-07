@@ -142,6 +142,8 @@ exports.up = async (knex: Knex<*>, Promise: Promise<*>) => {
       .string("privateKey")
       .nullable()
       .comment(`this is temporary. easy retrieval`);
+
+    table.unique(["assetId", "address"]);
   });
 
   await knex.schema.createTable("user_accounts", table => {
