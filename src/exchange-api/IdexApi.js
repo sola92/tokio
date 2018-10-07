@@ -97,8 +97,11 @@ export async function getOrdersForAmount(
   ticker: string,
   type: OrderType
 ): Promise<OrderPrice> {
-  const asks: Array<Order> = await getOrderBook(ticker, type);
   let remainingAmount = BigNumber(amount);
+  if (remainingAmount.isLessThan(0)) {
+    throw new Error("amount=" + amount + " is < 0.");
+  }
+  const asks: Array<Order> = await getOrderBook(ticker, type);
   let totalPrice = BigNumber(0);
   let i = 0;
   for (i = 0; i < asks.length && remainingAmount.isGreaterThan(0); i++) {
