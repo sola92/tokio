@@ -14,7 +14,7 @@ const WALLET_ADDRESS = "0x1234500000000000000000000000000000000000";
 
 const TOKEN_CURRENCY_INFO = {
   name: "LINK",
-  decimals: "18",
+  decimals: 18,
   address: "0x9934567890123456789012345678901234567899"
 };
 
@@ -88,14 +88,14 @@ test("get price for sell amount that partially fills one bid", async () => {
 // trade() tests
 test("correct args for complete multi-order trade()", async () => {
   const spy = jest.spyOn(axios, "post");
-  await trade(
-    ORDER_BOOK_RESPONSE.data.asks,
-    /* amountBuy */ "10",
-    /* tokenFillPrecision */ 18,
-    /* expectedAmountFill */ "1.7",
-    /* walletAddr */ WALLET_ADDRESS,
-    /* nonce */ 0
-  );
+  await trade({
+    orders: ORDER_BOOK_RESPONSE.data.asks,
+    amountBuy: "10",
+    tokenFillDecimals: 18,
+    expectedAmountFill: "1.7",
+    walletAddr: WALLET_ADDRESS,
+    nonce: 0
+  });
   const expectedTrade1 = {
     orderHash: "0xb7f696c344e6573c2be6e5a25b0eb7b1f510f490",
     // amount is the wei price, which is ask.price * ask.amount
@@ -125,14 +125,14 @@ test("correct args for complete multi-order trade()", async () => {
 
 test("correct args for partial multi-order trade()", async () => {
   const spy = jest.spyOn(axios, "post");
-  await trade(
-    ORDER_BOOK_RESPONSE.data.asks,
-    /* amountBuy */ "8",
-    /* tokenFillPrecision */ 18,
-    /* expectedAmountFill */ "1.3",
-    /* walletAddr */ WALLET_ADDRESS,
-    /* nonce */ 0
-  );
+  await trade({
+    orders: ORDER_BOOK_RESPONSE.data.asks,
+    amountBuy: "8",
+    tokenFillDecimals: 18,
+    expectedAmountFill: "1.3",
+    walletAddr: WALLET_ADDRESS,
+    nonce: 0
+  });
   const expectedTrade1 = expect.objectContaining({
     orderHash: "0xb7f696c344e6573c2be6e5a25b0eb7b1f510f490",
     // amount is the wei price, which is ask.price * ask.amount
@@ -162,40 +162,38 @@ test("correct args for partial multi-order trade()", async () => {
 
 test("trade() throws error when actual tokenFill is greater than expected.", async () => {
   await expect(
-    trade(
-      ORDER_BOOK_RESPONSE.data.asks,
-      /* amountBuy */ "8",
-      /* tokenFillPrecision */ 18,
-      /* expectedAmountFill */ "1.0",
-      /* walletAddr */ WALLET_ADDRESS,
-      /* nonce */ 0
-    )
+    trade({
+      orders: ORDER_BOOK_RESPONSE.data.asks,
+      amountBuy: "8",
+      tokenFillDecimals: 18,
+      expectedAmountFill: "1.0",
+      walletAddr: WALLET_ADDRESS,
+      nonce: 0
+    })
   ).rejects.toThrowError();
 });
 
 test("trade() throws no error when actual tokenFill is less than expected.", async () => {
-  await expect(
-    trade(
-      ORDER_BOOK_RESPONSE.data.asks,
-      /* amountBuy */ "8",
-      /* tokenFillPrecision */ 18,
-      /* expectedAmountFill */ "1.0",
-      /* walletAddr */ WALLET_ADDRESS,
-      /* nonce */ 0
-    )
-  );
+  await trade({
+    orders: ORDER_BOOK_RESPONSE.data.asks,
+    amountBuy: "8",
+    tokenFillDecimals: 18,
+    expectedAmountFill: "2.0",
+    walletAddr: WALLET_ADDRESS,
+    nonce: 0
+  });
 });
 
 test("correct args for withdraw()", async () => {
   const spy = jest.spyOn(axios, "post");
 
-  await withdraw(
-    IDEX_CONTRACT_ADDRESS,
-    /* amount */ "0.2",
-    TOKEN_CURRENCY_INFO,
-    /* nonce */ 0,
-    WALLET_ADDRESS
-  );
+  await withdraw({
+    contractAddr: IDEX_CONTRACT_ADDRESS,
+    amount: "0.2",
+    tokenCurrencyInfo: TOKEN_CURRENCY_INFO,
+    nonce: 0,
+    walletAddr: WALLET_ADDRESS
+  });
 
   const expected = expect.objectContaining({
     // Eth to Wei and the provided token have same precision.

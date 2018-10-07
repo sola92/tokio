@@ -1,5 +1,6 @@
 //@flow
 import { BigNumber } from "bignumber.js";
+import type { OrderType } from "./IdexApi";
 
 export class CannotFillOrderError extends Error {
   ticker: string;
@@ -8,10 +9,17 @@ export class CannotFillOrderError extends Error {
   requestedAmount: string;
 
   constructor(
-    ticker: string,
-    exchange: string,
-    fillableAmount: string,
-    requestedAmount: string,
+    {
+      ticker,
+      exchange,
+      fillableAmount,
+      requestedAmount
+    }: {
+      ticker: string,
+      exchange: string,
+      fillableAmount: string,
+      requestedAmount: string
+    },
     ...params: Array<any>
   ) {
     super(
@@ -27,20 +35,30 @@ export class CannotFillOrderError extends Error {
 export class TotalPriceIncreasedError extends Error {
   ticker: string;
   exchange: string;
-  type: string;
+  type: OrderType;
   requestedAmount: string;
   expectedPrice: string;
   actualPrice: string;
   tolerance: number;
 
   constructor(
-    ticker: string,
-    exchange: string,
-    type: string,
-    requestedAmount: string,
-    expectedPrice: string,
-    actualPrice: string,
-    tolerance: number,
+    {
+      ticker,
+      exchange,
+      type,
+      requestedAmount,
+      expectedPrice,
+      actualPrice,
+      tolerance
+    }: {
+      ticker: string,
+      exchange: string,
+      type: OrderType,
+      requestedAmount: string,
+      expectedPrice: string,
+      actualPrice: string,
+      tolerance: number
+    },
     ...params: Array<any>
   ) {
     super(

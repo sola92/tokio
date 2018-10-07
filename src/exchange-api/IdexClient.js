@@ -3,7 +3,6 @@ const util = require("util");
 import web3 from "web3";
 import EthereumTx from "ethereumjs-tx";
 import fs from "fs";
-import Erc20Session from "../lib/ethereum/Erc20Session";
 import Web3Session from "../lib/ethereum/Web3Session";
 import EthKey from "../pkey-service/EthKey";
 import {
@@ -20,7 +19,7 @@ import { BigNumber } from "bignumber.js";
 import { toContractPrecision } from "../lib/ethereum/ethutil";
 import type { TransactionReceipt } from "../lib/ethereum/typedef";
 
-import type { OrderPrice, CurrencyInfo } from "./IdexApi";
+import type { OrderPrice, OrderType, CurrencyInfo } from "./IdexApi";
 
 const ETH_DECIMALS_MULTIPLIER = "1000000000000000000";
 const ETH_PRECISION = 18;
@@ -34,13 +33,16 @@ async function getCurrencyInfo(ticker: string): Promise<CurrencyInfo> {
   let currencyInfo = CURRENCIES[ticker];
   if (currencyInfo == null) {
     CURRENCIES = await getCurrencies();
+    if (CURRENCIES[ticker] == null) {
+      throw new Error("IDEX doesn't have CurrencyInfo for ticker " + ticker);
+    }
     currencyInfo = CURRENCIES[ticker];
   }
   return currencyInfo;
 }
 
-let WEB3_SESSION: Web3Session;
-async function getWeb3Session() {
+let WEB3_SESSION: ?Web3Session;
+async function getWeb3Session(): Promise<Web3Session> {
   if (!WEB3_SESSION) {
     WEB3_SESSION = Web3Session.createSession();
   }
@@ -48,7 +50,7 @@ async function getWeb3Session() {
 }
 
 // This isn't expected to change once initialized.
-let IDEX_CONTRACT_ADDRESS: EthAddress;
+let IDEX_CONTRACT_ADDRESS: Promise<EthAddress>;
 async function getIdexContractAddr() {
   if (IDEX_CONTRACT_ADDRESS == null) {
     IDEX_CONTRACT_ADDRESS = await getIdexContractAddress();
@@ -119,6 +121,7 @@ export default class IdexClient {
     const gasRequired = await (await getIdexContractInstance()).methods
       .deposit()
       .estimateGas({ from: this.ethWalletAddress, value: amountWei });
+
     const web3Session = await getWeb3Session();
     const tx = new EthereumTx({
       from: this.ethWalletAddress,
@@ -157,19 +160,27 @@ export default class IdexClient {
   }
 
   async withdrawToken(tokenTicker: string, amount: string) {
-    const withdrawResponse = await withdraw(
-      IDEX_CONTRACT_ADDRESS,
-      amount,
-      await getCurrencyInfo(tokenTicker),
-      await this.getNonce(),
-      this.ethWalletAddress
-    );
+    const withdrawResponse = await withdraw({
+      contractAddr: await getIdexContractAddr(),
+      amount: amount,
+      tokenCurrencyInfo: await getCurrencyInfo(tokenTicker),
+      nonce: await this.getNonce(),
+      walletAddr: this.ethWalletAddress
+    });
     this.incrementNonce();
     return withdrawResponse;
   }
 
   // Posting an order to sell ETH to buy a token.
-  async postBuyOrder(tokenTicker: string, price: string, amount: string) {
+  async postBuyOrder({
+    tokenTicker,
+    price,
+    amount
+  }: {
+    tokenTicker: string,
+    price: string,
+    amount: string
+  }) {
     const buyPrice = new BigNumber(price);
     const buyAmount = new BigNumber(amount);
 
@@ -187,57 +198,73 @@ export default class IdexClient {
     const nonce = await this.getNonce();
 
     // Call IdexAPI to post the Order
-    const postOrderResponse = await postOrder(
-      IDEX_CONTRACT_ADDRESS,
-      buyTokenCurrencyInfo.address,
-      buyAmountDecimals.toFixed(),
-      ETH_TOKEN_ADDRESS,
-      sellAmountWei.toFixed(),
-      nonce,
-      this.ethWalletAddress
-    );
+    const postOrderResponse = await postOrder({
+      contractAddr: await getIdexContractAddr(),
+      tokenBuyAddr: buyTokenCurrencyInfo.address,
+      amountBuyDecimals: buyAmountDecimals.toFixed(),
+      tokenSellAddr: ETH_TOKEN_ADDRESS,
+      amountSellDecimals: sellAmountWei.toFixed(),
+      nonce: nonce,
+      walletAddr: this.ethWalletAddress
+    });
     this.incrementNonce();
     return postOrderResponse;
   }
 
-  async buyToken(
+  async buyToken({
+    tokenTicker,
+    amount,
+    expectedTotalPrice,
+    priceTolerance
+  }: {
     tokenTicker: string,
     amount: string,
     expectedTotalPrice: string,
     priceTolerance: number
-  ) {
-    return _tradeToken(
-      tokenTicker,
-      amount,
-      expectedTotalPrice,
-      priceTolerance,
-      "buy"
-    );
+  }) {
+    return this._tradeToken({
+      tokenTicker: tokenTicker,
+      amount: amount,
+      expectedTotalPrice: expectedTotalPrice,
+      priceTolerance: priceTolerance,
+      type: "buy"
+    });
   }
 
-  async sellToken(
+  async sellToken({
+    tokenTicker,
+    amount,
+    expectedTotalPrice,
+    priceTolerance
+  }: {
     tokenTicker: string,
     amount: string,
     expectedTotalPrice: string,
     priceTolerance: number
-  ) {
-    return _tradeToken(
-      tokenTicker,
-      amount,
-      expectedTotalPrice,
-      priceTolerance,
-      "sell"
-    );
+  }) {
+    return this._tradeToken({
+      tokenTicker: tokenTicker,
+      amount: amount,
+      expectedTotalPrice: expectedTotalPrice,
+      priceTolerance: priceTolerance,
+      type: "sell"
+    });
   }
 
   // Buying a token by filling buy orders (sell ETH)
-  async _tradeToken(
+  async _tradeToken({
+    tokenTicker,
+    amount,
+    expectedTotalPrice,
+    priceTolerance,
+    type
+  }: {
     tokenTicker: string,
     amount: string,
     expectedTotalPrice: string,
     priceTolerance: number,
     type: OrderType
-  ) {
+  }) {
     const orderPrice: OrderPrice = await getOrdersForAmount(
       amount,
       tokenTicker,
@@ -247,33 +274,33 @@ export default class IdexClient {
     const expTotalPrice = BigNumber(expectedTotalPrice);
     const actualPrice = BigNumber(orderPrice.totalPrice);
     if (actualPrice.isGreaterThan(expTotalPrice)) {
-      const priceError = expTotalPrice
-        .minus(expectedTotalPrice)
+      const priceError = actualPrice
+        .minus(expTotalPrice)
         .dividedBy(expTotalPrice);
       if (priceError.isGreaterThan(priceTolerance)) {
-        throw new TotalPriceIncreasedError(
-          tokenTicker,
-          "IDEX",
-          amount,
-          type,
-          expTotalPrice.toFixed(),
-          actualPrice.toFixed(),
-          priceTolerance
-        );
+        throw new TotalPriceIncreasedError({
+          ticker: tokenTicker,
+          exchange: "IDEX",
+          type: type,
+          requestedAmount: amount,
+          expectedPrice: expTotalPrice.toFixed(),
+          actualPrice: actualPrice.toFixed(),
+          tolerace: priceTolerance
+        });
       }
     }
     const nonce = await this.getNonce();
     const tokenCurrencyInfo = await getCurrencyInfo(tokenTicker);
 
     // Call IdexAPI to post the Order
-    const tradeResponse = await trade(
-      orderPrice.orders,
-      /* amountBuy */ amount,
-      /* tokenFillPrecision */ tokenCurrencyInfo.decimals,
-      /* amountFill */ actualPrice.toFixed(),
-      this.ethWalletAddress,
-      nonce
-    );
+    const tradeResponse = await trade({
+      orders: orderPrice.orders,
+      amountBuy: amount,
+      tokenFillDecimals: tokenCurrencyInfo.decimals,
+      expectedAmountFill: actualPrice.toFixed(),
+      walletAddr: this.ethWalletAddress,
+      nonce: nonce
+    });
     this.incrementNonce(orderPrice.orders.length);
     return tradeResponse;
   }

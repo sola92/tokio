@@ -10,7 +10,11 @@ const util = require("util");
 async function postABuyOrder() {
   let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
   try {
-    let b = await a.postBuyOrder("LINK", "0.00000029", "517242");
+    let b = await a.postBuyOrder({
+      tokenTicker: "LINK",
+      price: "0.00000029",
+      amount: "517242"
+    });
     console.log(b.data);
   } catch (error) {
     console.log("error: " + error.response.data.error);
@@ -27,7 +31,7 @@ async function getPriceToBuy10Link() {
     console.log("error: " + util.inspect(error));
   }
 }
-getPriceToBuy10Link();
+//getPriceToBuy10Link();
 
 async function getPriceToSell10Link() {
   try {
@@ -67,7 +71,12 @@ async function printOpenOrders() {
 async function buy1Link() {
   let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
   try {
-    let b = await a.buyToken("LINK", 1000, "0.00000029", "0.00000029");
+    let b = await a.buyToken({
+      tokenTicker: "LINK",
+      amount: 1000,
+      expectedTotalPrice: "0.00000029",
+      priceTolerance: "0.00000029"
+    });
     console.log(b.data);
   } catch (error) {
     //console.log("error: " + error.response.data.error);
@@ -79,13 +88,13 @@ async function buy1Link() {
 async function withdrawEth() {
   let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
   try {
-    let b = await a.withdrawToken("ETH", "0.04");
+    let b = await a.withdrawToken("ETH", "20");
     console.log("withdraw Response: " + b.data);
   } catch (error) {
     console.log("error withdrawing: " + util.inspect(error));
   }
 }
-//withdrawEth();
+withdrawEth();
 
 async function depositEth() {
   let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
