@@ -179,6 +179,7 @@
     "src/*"
   ],
   "scripts": {
+    "flow": "flow",
     "test": "babel-node src/test/beforeAll.js && jest --coverage",
     "build": "babel src -d lib"
   }

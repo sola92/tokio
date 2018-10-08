@@ -167,6 +167,10 @@ export default class Web3Session {
     return await this.web3.eth.sendSignedTransaction(transactionHash);
   }
 
+  createContractInstance(abi, contractAddress: EthAddress, options) {
+    return new this.web3.eth.Contract(abi, contractAddress, options);
+  }
+
   async getPeerCount(): Promise<number> {
     return await this.web3.eth.net.getPeerCount();
   }
