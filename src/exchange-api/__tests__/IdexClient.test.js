@@ -168,3 +168,32 @@ test("buyToken() throws error when price has increased too much", async () => {
   // IDEX contract.
   expect(await client.getNonce()).toEqual(INITIAL_NONCE);
 });
+
+test("IdexClient retries if IDEX says nonce is wrong.", async () => {
+  let client = new IdexClient(WALLET_ADDR);
+  // make sure withdraw isn't retried if there is no error.
+  withdraw.mockClear();
+  await client.withdrawToken("LINK", "1000");
+  expect(withdraw).toHaveBeenCalledTimes(1);
+
+  // Verify that withdraw is not retried if error is not nonce related.
+  withdraw.mockClear();
+  withdraw.mockImplementation(() => {
+    throw new Error();
+  });
+  try {
+    await client.withdrawToken("LINK", "1000");
+  } catch (error) {}
+  expect(withdraw).toHaveBeenCalledTimes(1);
+
+  // Verify that withdraw is retried once if error is nonce related.
+  withdraw.mockClear();
+  withdraw.mockImplementation(() => {
+    throw { response: { data: { error: "Nonce" } } };
+  });
+  try {
+    await client.withdrawToken("LINK", "1000");
+  } catch (error) {}
+
+  expect(withdraw).toHaveBeenCalledTimes(2);
+});
