@@ -17,7 +17,7 @@ async function postABuyOrder() {
     });
     console.log(b.data);
   } catch (error) {
-    console.log("error: " + error.response.data.error);
+    console.log("error: " + util.inspect(error.response));
   }
 }
 //postABuyOrder();
@@ -73,9 +73,9 @@ async function buy1Link() {
   try {
     let b = await a.buyToken({
       tokenTicker: "LINK",
-      amount: 1000,
-      expectedTotalPrice: "0.00000029",
-      priceTolerance: "0.00000029"
+      amount: 1,
+      expectedTotalPrice: "0.00169083",
+      priceTolerance: "0.1"
     });
     console.log(b.data);
   } catch (error) {
@@ -83,7 +83,7 @@ async function buy1Link() {
     console.log("error: " + util.inspect(error));
   }
 }
-//buy1Link();
+buy1Link();
 
 async function withdrawEth() {
   let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
@@ -94,7 +94,7 @@ async function withdrawEth() {
     console.log("error withdrawing: " + util.inspect(error));
   }
 }
-withdrawEth();
+//withdrawEth();
 
 async function depositEth() {
   let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");

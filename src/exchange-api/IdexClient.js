@@ -160,7 +160,7 @@ export default class IdexClient {
   }
 
   async withdrawToken(tokenTicker: string, amount: string) {
-    const withdrawResponse = await withdraw({
+    const withdrawResponse = await this.callIdexApiWithNonceRetry(withdraw, {
       contractAddr: await getIdexContractAddr(),
       amount: amount,
       tokenCurrencyInfo: await getCurrencyInfo(tokenTicker),
@@ -198,7 +198,7 @@ export default class IdexClient {
     const nonce = await this.getNonce();
 
     // Call IdexAPI to post the Order
-    const postOrderResponse = await postOrder({
+    const postOrderResponse = await this.callIdexApiWithNonceRetry(postOrder, {
       contractAddr: await getIdexContractAddr(),
       tokenBuyAddr: buyTokenCurrencyInfo.address,
       amountBuyDecimals: buyAmountDecimals.toFixed(),
@@ -285,7 +285,7 @@ export default class IdexClient {
           requestedAmount: amount,
           expectedPrice: expTotalPrice.toFixed(),
           actualPrice: actualPrice.toFixed(),
-          tolerace: priceTolerance
+          tolerance: priceTolerance
         });
       }
     }
@@ -293,7 +293,7 @@ export default class IdexClient {
     const tokenCurrencyInfo = await getCurrencyInfo(tokenTicker);
 
     // Call IdexAPI to post the Order
-    const tradeResponse = await trade({
+    const tradeResponse = await this.callIdexApiWithNonceRetry(trade, {
       orders: orderPrice.orders,
       amountBuy: amount,
       tokenFillDecimals: tokenCurrencyInfo.decimals,
@@ -303,5 +303,19 @@ export default class IdexClient {
     });
     this.incrementNonce(orderPrice.orders.length);
     return tradeResponse;
+  }
+
+  /* Calls a function in IdexApi module.
+  * If there is an error, this will do one more retry after fetching the nonce
+  * value from IDEX. If the retry still fails, the error won't be caught here.
+  */
+  async callIdexApiWithNonceRetry(apiFunction, args) {
+    try {
+      await apiFunction(args);
+    } catch (error) {
+      // make the API call again after force fetching the nonce from IDEX.
+      args.nonce = await this.getNonce(/*forceFetch*/ true);
+      await apiFunction(args);
+    }
   }
 }
