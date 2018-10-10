@@ -5,6 +5,7 @@ import {
   getOrderBook,
   getOpenOrders
 } from "./IdexApi";
+import "../hancock/init-db";
 const util = require("util");
 
 async function postABuyOrder() {
@@ -83,7 +84,7 @@ async function buy1Link() {
     console.log("error: " + util.inspect(error));
   }
 }
-buy1Link();
+//buy1Link();
 
 async function withdrawEth() {
   let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
@@ -94,7 +95,7 @@ async function withdrawEth() {
     console.log("error withdrawing: " + util.inspect(error));
   }
 }
-//withdrawEth();
+withdrawEth();
 
 async function depositEth() {
   let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
