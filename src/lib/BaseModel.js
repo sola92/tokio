@@ -49,12 +49,13 @@ export default class BaseModel<F: BaseFields> extends Model {
     });
   }
 
-  async transaction(fn: (trx: Knex$Transaction) => Promise<void>) {
+  async transaction(fn: (trx: Knex$Transaction) => Promise<>) {
     let trx: ?Knex$Transaction;
     try {
       trx = await transaction.start(this.constructor.knex());
-      await fn(trx);
-      await trx.commit();
+      const returnValue = await fn(trx);
+      const commitVal = await trx.commit();
+      return returnValue;
     } catch (err) {
       if (trx) {
         await trx.rollback();

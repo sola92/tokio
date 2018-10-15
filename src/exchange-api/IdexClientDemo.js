@@ -7,6 +7,9 @@ import {
 } from "./IdexApi";
 import "../hancock/init-db";
 const util = require("util");
+import { development as KnexDev } from "../hancock/knexfile";
+import Knex from "knex";
+export const knex = Knex(KnexDev);
 
 async function postABuyOrder() {
   let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
@@ -95,15 +98,18 @@ async function withdrawEth() {
     console.log("error withdrawing: " + util.inspect(error));
   }
 }
-withdrawEth();
+//withdrawEth();
 
 async function depositEth() {
   let a = new IdexClient("0xa7f696c344e6573c2be6e5a25b0eb7b1f510f499");
+  //let a = new IdexClient("0x18f9fe813d25ed16b1a98431a3115a7da5752ab8");
   try {
-    let b = await a.depositEth("0.01");
+    let b = await a.depositEth("0.000001");
     console.log("deposit Response: " + util.inspect(b));
   } catch (error) {
     console.log("error depositing: " + util.inspect(error));
+  } finally {
+    knex.destroy();
   }
 }
-//depositEth();
+depositEth();

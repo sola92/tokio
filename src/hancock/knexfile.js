@@ -6,7 +6,7 @@ export const development = {
   connection: {
     host: "127.0.0.1",
     user: "root",
-    password: "password",
+    password: "tblade29",
     database: "hancock",
     multipleStatements: true
   }

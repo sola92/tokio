@@ -2,6 +2,7 @@
 /* eslint-disable no-constant-condition */
 import AWS from "aws-sdk";
 import type { Sqs$Client, Sqs$Response, Sqs$Message } from "aws-sdk";
+const util = require("util");
 
 const sqs: Sqs$Client = new AWS.SQS().client;
 
@@ -16,6 +17,7 @@ type HandlerType = (...params: Array<Primitive>) => void;
 export class InvalidProcessorError extends Error {}
 
 const handleMessage = (target: Class<*>, message: QueueMessage) => {
+  console.log("in handleMessage with message: " + util.inspect(message));
   if (typeof target[message.call] !== "function") {
     console.error(
       `Processor ${target.name} does not have handler: ${message.call}`
@@ -29,6 +31,7 @@ const handleMessage = (target: Class<*>, message: QueueMessage) => {
 
 export const handler = function() {
   return (target: Class<*>, call: string, descriptor: any) => {
+    console.log("in handler");
     if (typeof descriptor.value !== "function") {
       throw new InvalidProcessorError(
         `${target.name}.${call} cannot be a queue handler`
@@ -76,6 +79,7 @@ export const handler = function() {
 };
 
 export const processor = function(queueUrl: string) {
+  console.log("in processor");
   const removeFromQueue = (message: Sqs$Message) => {
     sqs.deleteMessage(
       {

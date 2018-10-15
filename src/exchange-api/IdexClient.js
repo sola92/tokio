@@ -20,11 +20,12 @@ import { BigNumber } from "bignumber.js";
 import { toContractPrecision } from "../lib/ethereum/ethutil";
 import type { TransactionReceipt } from "../lib/ethereum/typedef";
 import Account from "../hancock/models/Account";
+import BalanceEvent from "../hancock/models/BalanceEvent";
+import User from "../hancock/models/User";
 import Asset from "../hancock/models/Asset";
 import EthereumTransaction from "../hancock/models/EthereumTransaction";
-import { development as KnexDev } from "../hancock/knexfile";
-import Knex from "knex";
-export const knex = Knex(KnexDev);
+import TransactionProcessor from "../hancock/processing/TransactionProcessor";
+import { handler, processor } from "../lib/processing";
 
 import type { OrderPrice, OrderType, CurrencyInfo } from "./IdexApi";
 
@@ -117,7 +118,7 @@ export default class IdexClient {
 
   ethKey: EthKey;
 
-  account: ?Account;
+  ethAccount: ?Account;
 
   constructor(ethWalletAddress: EthAddress) {
     this.ethWalletAddress = ethWalletAddress;
@@ -125,51 +126,97 @@ export default class IdexClient {
     this.ethKey = new EthKey();
   }
 
-  async getAccount() {
-    /*knex
-      .from("accounts")
-      .select("address")
-      .then(function(projectNames) {
-        console.log(projectNames);
-      });*/
-    if (!this.account) {
-      this.account = await Account.findByAddress(this.ethWalletAddress, 18);
-      if (!this.account) {
+  // Caches the fetched Account row. It's OK if the object is stale.
+  async getEthAccount() {
+    if (!this.ethAccount) {
+      this.ethAccount = await Account.findByAddress(this.ethWalletAddress, 18);
+      if (!this.ethAccount) {
         throw new UnknownAccountError(
           `ETH Account not found: ${this.ethWalletAddress}`
         );
       }
     }
-    return this.account;
+    return this.ethAccount;
   }
 
-  async createEthTransaction() {
-    const account = await this.getAccount();
-    await account.transaction(async (trx: Knex$Transaction) => {
-      const session = await getWeb3Session();
-      const nonce = await session.getNonce(this.ethWalletAddress);
-      const chainId = await session.getChainId();
+  async depositEth(amount: string) {
+    const amountWei = web3.utils.toWei(amount, "ether");
+    const gasRequired = await (await getIdexContractInstance()).methods
+      .deposit()
+      .estimateGas({ from: this.ethWalletAddress, value: amountWei });
 
-      // create EthereumTx
+    const account = await this.getEthAccount();
+    const session = await getWeb3Session();
+    const gasPriceWei = await session.getGasPriceWei();
+
+    const ethTxn = await account.transaction(async (trx: knex$transaction) => {
+      // create ethereumtx
       const ethTxn = await EthereumTransaction.insert(
         {
           to: await getIdexContractAddress(),
           from: this.ethWalletAddress,
           state: "pending",
           nonce: await session.getNonce(this.ethWalletAddress),
-          chainId: session.toHex(await session.getChainId()),
+          chainId: await session.getChainId(),
           gasLimit: gasRequired.toFixed(),
-          // consider using FeeEstimator
-          gasPriceWei: await session.getGasPriceWei(),
-          assetId: (await Asset.fromTickerOptional("ETH")).id,
+          // consider using feeestimator
+          gasPriceWei: gasPriceWei.toFixed(),
+          assetId: 18,
           value: amountWei
         },
         trx
       );
+
+      // Charge the gas fees to the house.
+      const house = await User.getHouseUser();
+      const estimateFee = gasPriceWei.times(gasRequired);
+      await BalanceEvent.insert(
+        {
+          userId: (await User.getHouseUser()).id,
+          accountId: (await this.getEthAccount()).id,
+          assetId: 18,
+          amount: session
+            .weiToEther(estimateFee)
+            .times(-1)
+            .toFixed(),
+          action: "gas",
+          note: `gas for IDEX ETH deposit`,
+          state: "pending",
+          withdrawalId: ethTxn.id
+        },
+        trx
+      );
+
+      console.log(
+        `withdrawing ${BigNumber(amountWei)
+          .times(-1)
+          .toString()}`
+      );
+      await BalanceEvent.insert(
+        {
+          userId: userId,
+          accountId: account.attr.id,
+          assetId: 18,
+          amount: BigNumber(amountWei)
+            .times(-1)
+            .toFixed(),
+          action: "withdrawal",
+          note: note || `IDEX ETH deposit`,
+          state: "pending",
+          withdrawalId: ethTxn.attr.id
+        },
+        trx
+      );
+
+      return ethTxn;
     });
+
+    //if (process.env.NODE_ENV === "production") {
+    //await TransactionProcessor.broadcastEthTransaction.publish(ethTxn.attr.id);
+    //  }
   }
 
-  async depositEth(amount: string) {
+  async depositEthWorking(amount: string) {
     const amountWei = web3.utils.toWei(amount, "ether");
     const gasRequired = await (await getIdexContractInstance()).methods
       .deposit()
@@ -188,7 +235,6 @@ export default class IdexClient {
       gasLimit: web3Session.toHex(gasRequired),
       chainId: web3Session.toHex(await web3Session.getChainId())
     });
-    this.createEthTransaction();
     this.ethKey.signTransaction(tx);
     try {
       const txReceipt: TransactionReceipt = await web3Session.sendSignedTransaction(

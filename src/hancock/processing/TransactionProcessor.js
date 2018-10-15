@@ -79,6 +79,7 @@ export default class TransactionProcessor {
       const hash = await transfer.send();
       await txn.update({ hash });
     } else {
+      console.log("Creating an ETH Transfer");
       const transfer = new EthTransferBuilder()
         .setSession(web3Session)
         .setSenderAddress(txn.attr.from)
