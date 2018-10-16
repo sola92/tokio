@@ -15,9 +15,16 @@ import {
   withdraw
 } from "./IdexApi";
 import { TotalPriceIncreasedError } from "./errors";
+import { UnknownAccountError } from "../hancock/errors";
 import { BigNumber } from "bignumber.js";
 import { toContractPrecision } from "../lib/ethereum/ethutil";
 import type { TransactionReceipt } from "../lib/ethereum/typedef";
+import Account from "../hancock/models/Account";
+import Asset from "../hancock/models/asset";
+import EthereumTransaction from "../hancock/models/EthereumTransaction";
+import { development as KnexDev } from "../hancock/knexfile";
+import Knex from "knex";
+export const knex = Knex(KnexDev);
 
 import type { OrderPrice, OrderType, CurrencyInfo } from "./IdexApi";
 
@@ -109,6 +116,8 @@ export default class IdexClient {
   idexContract: web3.eth.Contract;
 
   ethKey: EthKey;
+
+  account: ?Account;
 
   constructor(ethWalletAddress: EthAddress) {
     this.ethWalletAddress = ethWalletAddress;

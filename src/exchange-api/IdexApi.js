@@ -56,6 +56,9 @@ export type CurrencyInfo = {
   address: EthAddress
 };
 
+export const CODE = 1;
+export const NAME = "IDEX";
+
 const TO_ETH_MARKET = (ticker: string) => "ETH_" + ticker.toUpperCase();
 const DEFAULT_QUERY_COUNT = 100;
 
@@ -147,7 +150,7 @@ export async function getPriceForAmount(
   ticker: string,
   amount: string,
   orderType: OrderType
-): Promise<BigNumber> {
+): Promise<string> {
   if (BigNumber(amount).isLessThan(0)) {
     throw new Error("Unexpected: amount=" + amount + " is < 0");
   }
@@ -156,7 +159,7 @@ export async function getPriceForAmount(
     ticker,
     orderType
   );
-  return orderPrice.totalPrice.multipliedBy(1 + FEE_RATIO);
+  return orderPrice.totalPrice.multipliedBy(1 + FEE_RATIO).toFixed();
 }
 
 export function getBalances(
