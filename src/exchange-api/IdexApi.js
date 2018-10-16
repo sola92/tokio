@@ -56,9 +56,8 @@ export type CurrencyInfo = {
   address: EthAddress
 };
 
-const TO_MARKET_ARG = (ticker: string) => ({
-  market: "ETH_" + ticker.toUpperCase()
-});
+const TO_ETH_MARKET = (ticker: string) => "ETH_" + ticker.toUpperCase();
+const DEFAULT_QUERY_COUNT = 100;
 
 const FEE_RATIO: number = 0.03;
 const ETH_TOKEN_ADDR: EthAddress = "0x0000000000000000000000000000000000000000";
@@ -76,16 +75,19 @@ export function getCurrencies(): Promise<{ [ticker: string]: CurrencyInfo }> {
 }
 
 export function getTickerInfo(ticker: string): Promise<TickerInfo> {
-  return callIdex("returnTicker", TO_MARKET_ARG(ticker)).then(
-    response => response.data
-  );
+  return callIdex("returnTicker", {
+    market: TO_ETH_MARKET(ticker)
+  }).then(response => response.data);
 }
 
 export function getOrderBook(
   ticker: string,
   type: OrderType
 ): Promise<Array<Order>> {
-  return callIdex("returnOrderBook", TO_MARKET_ARG(ticker)).then(
+  return callIdex("returnOrderBook", {
+    market: TO_ETH_MARKET(ticker),
+    count: DEFAULT_QUERY_COUNT
+  }).then(
     response => (type === "buy" ? response.data.asks : response.data.bids)
   );
 }
