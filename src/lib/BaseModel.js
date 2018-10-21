@@ -52,7 +52,7 @@ export default class BaseModel<F: BaseFields> extends Model {
   async transaction(fn: (trx: Knex$Transaction) => Promise<void>) {
     let trx: ?Knex$Transaction;
     try {
-      trx = await transaction.start(this.constructor.knex());
+      trx = await transaction.start(Model.knex());
       await fn(trx);
       await trx.commit();
     } catch (err) {

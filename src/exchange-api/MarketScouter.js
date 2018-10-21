@@ -12,12 +12,16 @@ type Market = {
   exchange: string
 };
 
+const OP_GET_PRICE = "GET_PRICE";
+const OP_TRADE = "TRADE";
+type MarketOperation = OP_GET_PRICE | OP_TRADE;
+
 export type Price = {
   buyToken: string,
   sellToken: string,
-  price: string,
   amount: string,
   avgUnitPrice: string,
+  priceToken: string,
   exchange: string
 };
 
@@ -33,10 +37,16 @@ const ETH_LINK_MARKET: Market = {
 };
 const TOKEN_DIRECTORY = { ETH: [ETH_LINK_MARKET], LINK: [JUST_A_LINK_MARKET] };
 
-const TO_PRICE = (market: Market, price: string, amount: string): Price => ({
+const TO_PRICE = (
+  market: Market,
+  price: string,
+  priceToken: string,
+  amount: string
+): Price => ({
   buyToken: market.buyToken,
   sellToken: market.sellToken,
   price: price,
+  priceToken: priceToken,
   amount: amount,
   avgUnitPrice: BigNumber(price)
     .dividedBy(amount)
@@ -56,40 +66,57 @@ export function getMarketsForToken({
   );
 }
 
+async function idexMarketOp(
+  market: Market,
+  amount: string,
+  amountToken: string,
+  op: MarketOperation
+) {
+  let tradeToken;
+  let orderType;
+  if (amountToken === "ETH") {
+    throw Error(
+      "Unexpected: No support for trading in quantities of ETH on IDEX"
+    );
+  }
+  if (market.buyToken === "ETH") {
+    if (market.sellToken !== amountToken) {
+      throw Error(
+        "Unexpected: amountToken should be sellToken when buying ETH on IDEX."
+      );
+    }
+    tradeToken = market.sellToken;
+    orderType = "sell";
+  } else {
+    if (market.buyToken !== amountToken) {
+      throw Error(
+        "Unexpected: amountToken should be buyToken when buying a token on IDEX."
+      );
+    }
+    tradeToken = market.buyToken;
+    orderType = "buy";
+  }
+
+  switch (op) {
+    case OP_GET_PRICE:
+      return TO_PRICE(
+        market,
+        await IdexApi.getPriceForAmount(tradeToken, amount, orderType),
+        amount
+      );
+    case OP_TRADE:
+      return null;
+    //return await IdexClient();
+  }
+}
+
 async function getPriceInMarket(
   market: Market,
   amount: string,
   amountToken: string
 ): Promise<Price> {
   if (market.exchange === IdexApi.NAME) {
-    if (amountToken === "ETH") {
-      throw Error(
-        "Unexpected: No support for trading in quantities of ETH on IDEX"
-      );
-    }
-    if (market.buyToken === "ETH") {
-      if (market.sellToken !== amountToken) {
-        throw Error(
-          "Unexpected: amountToken should be sellToken when buying ETH on IDEX."
-        );
-      }
-      return TO_PRICE(
-        market,
-        await IdexApi.getPriceForAmount(market.sellToken, amount, "sell"),
-        amount
-      );
-    } else {
-      if (market.buyToken !== amountToken) {
-        throw Error(
-          "Unexpected: amountToken should be buyToken when buying a token on IDEX."
-        );
-      }
-      return TO_PRICE(
-        market,
-        await IdexApi.getPriceForAmount(market.buyToken, amount, "buy"),
-        amount
-      );
-    }
+    return await idexMarketOp(market, amount, amountToken, OP_GET_PRICE);
   }
   throw Error(
     "Unexpected: Don't know how to handle Market: " + JSON.stringify(market)
@@ -139,4 +166,9 @@ export async function getBestPrice({
         ? p
         : bestPrice
   );
+}
+
+export async function buyTokenForPrice(price: Price) {
+  if (market.exchange === IdexApi.NAME) {
+  }
 }

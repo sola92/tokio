@@ -18,12 +18,12 @@ router.get(
   "/:buyToken/:sellToken",
   wrapAsync(
     async (req: $Request, res: $Response): Promise<mixed> => {
-      const buyToken: ?string = req.params.buyToken;
-      const sellToken: ?string = req.params.sellToken;
+      let buyToken: ?string = req.params.buyToken;
+      let sellToken: ?string = req.params.sellToken;
       // $FlowFixMe
       const amount: ?string = req.query.amount;
       // $FlowFixMe
-      const amountToken: ?string = req.query.amountToken;
+      let amountToken: ?string = req.query.amountToken;
 
       if (
         buyToken == null ||
@@ -33,6 +33,16 @@ router.get(
       ) {
         throw new InvalidParameterError(
           `'buyToken', 'sellToken', 'amount' and 'amountToken' params are required.`
+        );
+      }
+
+      // normalize inputs
+      buyToken = buyToken.toUpperCase();
+      sellToken = sellToken.toUpperCase();
+      amountToken = amountToken.toUpperCase();
+      if (amountToken !== buyToken && amountToken !== sellToken) {
+        throw new InvalidParameterError(
+          `'amountToken' must be either 'buyToken' or 'sellToken'.`
         );
       }
 
@@ -51,17 +61,17 @@ router.get(
       // Since we will first only have IDEX, disallow amount inputs in ETH.
       // TODO(sujen) Will re-evaluate later after adding other exchanges to see if it is
       // worthwhile allowing flexibility in choosing the quantity token.
-      if (amountToken.toUpperCase() === "ETH") {
+      if (amountToken === "ETH") {
         throw new InvalidParameterError(
           "We don't support price checks for amounts in ETH."
         );
       }
 
       const price: MarketScouter.Price = await MarketScouter.getBestPrice({
-        buyToken: buyToken.toUpperCase(),
-        sellToken: sellToken.toUpperCase(),
+        buyToken: buyToken,
+        sellToken: sellToken,
         amount: amount,
-        amountToken: amountToken.toUpperCase()
+        amountToken: amountToken
       });
       res.json(price);
     }

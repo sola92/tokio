@@ -33,4 +33,26 @@ export default class AccountBalance extends BaseModel<Fields> {
   }): Promise<?this> {
     return this.findOne({ userId, accountId, assetId });
   }
+
+  async incrementPendingBalance(amount: BigNumber) {
+    const newPendingBalance = BigNumber(this.attr.totalPending).plus(amount);
+    const numUpdated: number = await AccountBalance.query()
+      .patch({ totalPending: newPendingBalance })
+      .where("userId", this.attr.userId)
+      .where("assetId", this.attr.assetId);
+
+    if (numUpdated != 1) {
+      throw new AccountBusyError(
+        "failed to increment pending balance amount=" +
+          amount +
+          " for AccountBalance userId=" +
+          this.attr.userId +
+          " assetId=" +
+          this.attr.assetId +
+          " accountId=" +
+          this.attr.accountId
+      );
+    }
+    return newPendingBalance;
+  }
 }
