@@ -110,7 +110,7 @@ router.post(
     );
     console.log("User SellTokenAccount: " + util.inspect(userSellTokenAccount));
 
-    const userSellTokenBalance = await AccountBalance.fetch({
+    let userSellTokenBalance = await AccountBalance.fetch({
       userId: parseInt(userId),
       assetId: parseInt(sellAsset.id),
       accountId: userSellTokenAccount.id
@@ -131,13 +131,17 @@ router.post(
     // Make pending balance events for user
     try {
       // Decrement user's sellToken balance by amount.
-      await userSellTokenBalance.transaction(async (trx: knex$transaction) => {
-        userSellTokenBalance.adjustPendingBalance(
-          BigNumber(reqSellTokenAmount).times(-1)
-        );
+      const r = await userSellTokenBalance.transaction(
+        async (trx: knex$transaction) => {
+          return await userSellTokenBalance.adjustPendingBalance(
+            BigNumber(reqSellTokenAmount).times(-1),
+            trx
+          );
 
-        // Ideally, add an entry to UserBalance here as well, in pending state.
-      });
+          // Ideally, add an entry to UserBalance here as well, in pending state.
+        }
+      );
+      console.log("ZZZ userSellToken.adjustPendingBalance response: " + r);
     } catch (e) {
       if (e instanceof LockError) {
         const lockError: LockError = e;
@@ -148,18 +152,39 @@ router.post(
     }
 
     // now try and make the trade
+    //const resp = await MarketScouter.buyTokenForPrice(price);
+    //console.log("buyTokenForPrice resp: " + util.inspect(resp));
 
-    //
-
-    //
-
-    /*
-    const accountBalance = await AccountBalance.fetch({
-      userId,
-      assetId: sellAsset.attr.id,
-      accountId: account.attr.id
-    });
-    */
+    // confirm the pending balance for user
+    try {
+      // Decrement user's sellToken balance by amount.
+      await userSellTokenBalance.transaction(async (trx: knex$transaction) => {
+        // TODO(sujen) figure out why the orm isn't updating the object after the previous transaction.
+        // I shouldn't need to re-fetch here.....?
+        // Maybe its because I am out of the transaction.
+        userSellTokenBalance = await AccountBalance.fetch({
+          userId: parseInt(userId),
+          assetId: parseInt(sellAsset.id),
+          accountId: userSellTokenAccount.id
+        });
+        console.log(
+          "ZZZZ userSellTokenBalance pending: " +
+            userSellTokenBalance.totalPending
+        );
+        return await userSellTokenBalance.confirmPendingBalance(
+          BigNumber(reqSellTokenAmount).times(-1),
+          trx
+        );
+        // Ideally, add an entry to UserBalance here as well, in pending state.
+      });
+    } catch (e) {
+      if (e instanceof LockError) {
+        const lockError: LockError = e;
+        throw new AccountBusyError(lockError.message, e);
+      } else {
+        throw e;
+      }
+    }
 
     res.json({
       status:

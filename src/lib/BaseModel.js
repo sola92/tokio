@@ -5,6 +5,7 @@
 
 import { Model, transaction } from "objection";
 import moment from "moment";
+const util = require("util");
 import type { Knex, $QueryBuilder, Knex$Transaction } from "knex";
 
 type Id = number;
@@ -49,17 +50,25 @@ export default class BaseModel<F: BaseFields> extends Model {
     });
   }
 
-  async transaction(fn: (trx: Knex$Transaction) => Promise<void>) {
+  async transaction(fn: (trx: Knex$Transaction) => Promise<>) {
     let trx: ?Knex$Transaction;
     try {
-      trx = await transaction.start(Model.knex());
-      await fn(trx);
-      await trx.commit();
+      trx = await transaction.start(this.constructor.knex());
+      const returnValue = await fn(trx);
+      const commitVal = await trx.commit();
+      console.log("ZZZ COmmitted: returnValue: " + JSON.stringify(returnValue));
+      return returnValue;
     } catch (err) {
+      console.log("ZZZ got error!!");
       if (trx) {
-        await trx.rollback();
+        console.log("rolling back transaction");
+        console.log("error: " + util.inspect(err));
+        await trx.rollback(err);
+        console.log("finished rolling back");
+        return;
+      } else {
+        throw err;
       }
-      throw err;
     }
   }
 

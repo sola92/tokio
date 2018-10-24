@@ -34,13 +34,11 @@ export default class AccountBalance extends BaseModel<Fields> {
     return this.findOne({ userId, accountId, assetId });
   }
 
-  async incrementPendingBalance(amount: BigNumber) {
+  async adjustPendingBalance(amount: BigNumber, trx: Knex$Transaction) {
     const newPendingBalance = BigNumber(this.attr.totalPending).plus(amount);
-    const numUpdated: number = await AccountBalance.query()
-      .patch({ totalPending: newPendingBalance })
-      .where("userId", this.attr.userId)
-      .where("assetId", this.attr.assetId);
+    await this.update({ totalPending: newPendingBalance.toNumber() }, trx);
 
+    const numUpdated = 1;
     if (numUpdated != 1) {
       throw new AccountBusyError(
         "failed to increment pending balance amount=" +
@@ -53,6 +51,27 @@ export default class AccountBalance extends BaseModel<Fields> {
           this.attr.accountId
       );
     }
-    return newPendingBalance;
+    console.log("ZZZ adjusted pending balance: " + newPendingBalance);
+    return this;
+  }
+
+  async confirmPendingBalance(amount: BigNumber, trx: Knex$Transaction) {
+    // TODO(sujen) currently enforcing that this amount must be the same as pending.
+    // Eventually, allow many pending balances.
+    if (!amount.isEqualTo(this.attr.totalPending)) {
+      throw Error(
+        "confirmPendingBalance: amount=" +
+          amount.toFixed() +
+          " != totalPending=" +
+          this.attr.totalPending
+      );
+    }
+
+    const newBalance = BigNumber(this.attr.availableBalance).plus(amount);
+    await this.update(
+      { totalPending: 0, availableBalance: newBalance.toNumber() },
+      trx
+    );
+    return this;
   }
 }

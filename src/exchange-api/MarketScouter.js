@@ -1,8 +1,12 @@
 //@flow
 const util = require("util");
 import * as IdexApi from "../exchange-api/IdexApi";
-import * as IdexClient from "../exchange-api/IdexClient";
+import IdexClient from "../exchange-api/IdexClient";
 import { BigNumber } from "bignumber.js";
+import winston from "winston";
+const logger = winston.createLogger({
+  transports: [new winston.transports.Console()]
+});
 
 const EXCHANGES = [IdexApi.NAME];
 
@@ -16,13 +20,20 @@ const OP_GET_PRICE = "GET_PRICE";
 const OP_TRADE = "TRADE";
 type MarketOperation = OP_GET_PRICE | OP_TRADE;
 
-export type Price = {
-  buyToken: string,
-  sellToken: string,
+type MarketOpArgs = {
+  market: Market,
   amount: string,
-  avgUnitPrice: string,
+  amountToken: string,
+  expectedPrice: ?Price
+};
+
+export type Price = {
+  market: Market,
+  price: string,
   priceToken: string,
-  exchange: string
+  amount: string,
+  amountToken: string,
+  avgUnitPrice: string
 };
 
 const JUST_A_LINK_MARKET: Market = {
@@ -41,17 +52,17 @@ const TO_PRICE = (
   market: Market,
   price: string,
   priceToken: string,
-  amount: string
+  amount: string,
+  amountToken: string
 ): Price => ({
-  buyToken: market.buyToken,
-  sellToken: market.sellToken,
+  market: market,
   price: price,
   priceToken: priceToken,
   amount: amount,
+  amountToken: amountToken,
   avgUnitPrice: BigNumber(price)
     .dividedBy(amount)
-    .toFixed(),
-  exchange: market.exchange
+    .toFixed()
 });
 
 export function getMarketsForToken({
@@ -66,48 +77,74 @@ export function getMarketsForToken({
   );
 }
 
-async function idexMarketOp(
-  market: Market,
-  amount: string,
-  amountToken: string,
-  op: MarketOperation
-) {
+async function idexMarketOp(op: MarketOperation, args: MarketOpArgs) {
   let tradeToken;
   let orderType;
-  if (amountToken === "ETH") {
+  if (args.amountToken === "ETH") {
     throw Error(
       "Unexpected: No support for trading in quantities of ETH on IDEX"
     );
   }
-  if (market.buyToken === "ETH") {
-    if (market.sellToken !== amountToken) {
+  if (args.market.buyToken === "ETH") {
+    if (args.market.sellToken !== args.amountToken) {
       throw Error(
         "Unexpected: amountToken should be sellToken when buying ETH on IDEX."
       );
     }
-    tradeToken = market.sellToken;
+    tradeToken = args.market.sellToken;
     orderType = "sell";
   } else {
-    if (market.buyToken !== amountToken) {
+    if (args.market.buyToken !== args.amountToken) {
       throw Error(
-        "Unexpected: amountToken should be buyToken when buying a token on IDEX."
+        "Unexpected: amountToken=" +
+          args.amountToken +
+          " buyToken=" +
+          args.market.buyToken +
+          " should be buyToken when buying a token on IDEX."
       );
     }
-    tradeToken = market.buyToken;
+    tradeToken = args.market.buyToken;
     orderType = "buy";
   }
 
   switch (op) {
     case OP_GET_PRICE:
+      // For getting the price, we use tradeToken instead of buyToken since this allows either "buying" or "selling" a token.
       return TO_PRICE(
-        market,
-        await IdexApi.getPriceForAmount(tradeToken, amount, orderType),
-        amount
+        args.market,
+        await IdexApi.getPriceForAmount(tradeToken, args.amount, orderType),
+        /* priceToken */ "ETH",
+        args.amount,
+        args.amountToken
       );
     case OP_TRADE:
-      return null;
-    //return await IdexClient();
+      if (args.expectedPrice == null) {
+        throw Error("expectedPrice is required for an OP_TRADE.");
+      }
+      // Get an Ethereum Account
+      // Temprorary, until we decouple Address from AccountBalance
+      // TODO(sujen) the whole instantiation of IdexClient needs to change,
+      // it should involve an IdexClient for one of our fund wallets. We need
+      // another service that keeps track of wallets with funds.
+      const TEMP_ETH_ADDR = "0xc99E5baBEaa47fD9BA357381C706c5407a729f25";
+
+      const idexClient = new IdexClient(TEMP_ETH_ADDR);
+      return await idexClient.buyToken({
+        tokenTicker: args.market.buyToken,
+        amount: args.amount,
+        expectedTotalPrice: args.expectedPrice.price,
+        priceTolerance: "0.1"
+      });
   }
+}
+
+async function doMarketOp(op: MarketOperation, args: MarketOpArgs) {
+  if (args.market.exchange === IdexApi.NAME) {
+    return await idexMarketOp(op, args);
+  }
+  throw Error(
+    "Unexpected: Don't know how to handle Market: " + JSON.stringify(market)
+  );
 }
 
 async function getPriceInMarket(
@@ -115,12 +152,11 @@ async function getPriceInMarket(
   amount: string,
   amountToken: string
 ): Promise<Price> {
-  if (market.exchange === IdexApi.NAME) {
-    return await idexMarketOp(market, amount, amountToken, OP_GET_PRICE);
-  }
-  throw Error(
-    "Unexpected: Don't know how to handle Market: " + JSON.stringify(market)
-  );
+  return doMarketOp(OP_GET_PRICE, {
+    market: market,
+    amount: amount,
+    amountToken: amountToken
+  });
 }
 
 export async function getPrices({
@@ -140,6 +176,7 @@ export async function getPrices({
     sellToken: sellToken
   });
 
+  console.log("Markets: " + JSON.stringify(markets));
   // only look at first market for now.
   return [await getPriceInMarket(markets[0], amount, amountToken)];
 }
@@ -169,6 +206,14 @@ export async function getBestPrice({
 }
 
 export async function buyTokenForPrice(price: Price) {
-  if (market.exchange === IdexApi.NAME) {
-  }
+  logger.log(
+    "info",
+    "MarketScouter.buyTokenForPrice() " + JSON.stringify(price)
+  );
+  return doMarketOp(OP_TRADE, {
+    market: price.market,
+    amount: price.amount,
+    amountToken: price.amountToken,
+    expectedPrice: price
+  });
 }

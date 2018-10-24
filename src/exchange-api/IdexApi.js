@@ -2,6 +2,7 @@
 const util = require("util");
 import web3 from "web3";
 import Axios from "axios";
+import winston from "winston";
 import { soliditySha3 } from "web3-utils";
 import {
   hashPersonalMessage,
@@ -15,6 +16,10 @@ import { toContractPrecision } from "../lib/ethereum/ethutil";
 
 import EthKey from "../pkey-service/EthKey";
 import { CannotFillOrderError } from "./errors";
+
+const logger = winston.createLogger({
+  transports: [new winston.transports.Console()]
+});
 
 // General IDEX Response structure.
 type Response = {
@@ -67,6 +72,10 @@ const ETH_TOKEN_ADDR: EthAddress = "0x0000000000000000000000000000000000000000";
 
 // See IDEX API Docs (https://github.com/AuroraDAO/idex-api-docs) for info.
 function callIdex(method: string, args: any) {
+  logger.log(
+    "info",
+    "Calling IDEX API /" + method + " with args: " + JSON.stringify(args)
+  );
   return Axios.post("https://api.idex.market/" + method, args);
 }
 

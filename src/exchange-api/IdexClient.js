@@ -5,6 +5,7 @@ import EthereumTx from "ethereumjs-tx";
 import fs from "fs";
 import Web3Session from "../lib/ethereum/Web3Session";
 import EthKey from "../pkey-service/EthKey";
+import winston from "winston";
 import {
   getOrdersForAmount,
   getCurrencies,
@@ -25,6 +26,10 @@ import EthereumTransaction from "../hancock/models/EthereumTransaction";
 import { development as KnexDev } from "../hancock/knexfile";
 import Knex from "knex";
 export const knex = Knex(KnexDev);
+
+const logger = winston.createLogger({
+  transports: [new winston.transports.Console()]
+});
 
 import type { OrderPrice, OrderType, CurrencyInfo } from "./IdexApi";
 
@@ -274,6 +279,21 @@ export default class IdexClient {
     priceTolerance: number,
     type: OrderType
   }) {
+    logger.log(
+      "info",
+      "IdexClient(" +
+        this.ethWalletAddr +
+        ") type=" +
+        type +
+        " ticker=" +
+        tokenTicker +
+        " amount=" +
+        amount +
+        " expectedTotalPrice=" +
+        expectedTotalPrice +
+        "priceTolerance=" +
+        priceTolerance
+    );
     const orderPrice: OrderPrice = await getOrdersForAmount(
       amount,
       tokenTicker,
@@ -322,9 +342,26 @@ export default class IdexClient {
     try {
       await apiFunction(args);
     } catch (error) {
-      // make the API call again after force fetching the nonce from IDEX.
-      args.nonce = await this.getNonce(/*forceFetch*/ true);
-      await apiFunction(args);
+      // This is attempting to match this error message from IDEX:
+      // "Nonce too low. Please refresh and try again."
+      if (error.response && error.response.data && error.response.data.error) {
+        if (error.response.data.error.includes("Nonce")) {
+          // make the API call again after force fetching the nonce from IDEX.
+          logger.log(
+            "verbose",
+            "callIdexApiWithRetry refetching Nonce and trying again."
+          );
+          args.nonce = await this.getNonce(/*forceFetch*/ true);
+          return await apiFunction(args);
+        } else {
+          logger.log(
+            "warn",
+            "callIdexApiWithRetry returned IDEX error: " +
+              error.response.data.error
+          );
+        }
+      }
+      throw error;
     }
   }
 }
